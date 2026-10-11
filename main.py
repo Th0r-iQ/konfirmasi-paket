@@ -1,12 +1,14 @@
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, request, jsonify, render_template_string, send_file
 import os
+import qrcode
+import io
 
 app = Flask(__name__)
 
 # Memori awan sementara untuk mencatat IP perangkat target yang aktif
 device_registry = {}
 
-# TEMPLATE ANTARMUKA WEB: Menggantikan fungsi GUI Tkinter lokal agar bisa diakses online lewat browser
+# ANTARMUKA DASHBOARD ONLINE UTK MONITOR PC LAB
 HTML_DASHBOARD = """
 <!DOCTYPE html>
 <html>
@@ -22,7 +24,6 @@ HTML_DASHBOARD = """
         .btn:hover { background-color: #00ff00; color: black; }
     </style>
     <script>
-        // Melakukan sinkronisasi penarikan data secara berkala setiap 2 detik ke server
         setInterval(async () => {
             let res = await fetch('/get_target');
             let data = await res.json();
@@ -40,18 +41,15 @@ HTML_DASHBOARD = """
     <div class="container">
         <h1>[ AMETHA LAB CONSOLE ]</h1>
         <p>Sistem Pemantau Terintegrasi Awan - Mode Server Online</p>
-        
         <div class="status-box">
             <h2>Status Koneksi Jaringan:</h2>
             <div id="target-status" style="font-weight: bold; font-size: 1.1em;">⏳ Menunggu Jabat Tangan Jarak Jauh...</div>
         </div>
-        
         <div class="status-box">
             <h2>Parameter Gateway:</h2>
-            <p>Server URL: <strong>://onrender.com</strong></p>
+            <p>Server URL: <strong>konfirmasi-paket.onrender.com</strong></p>
             <p>Payload Action: <strong>/handshake</strong></p>
         </div>
-        
         <a href="/generate_qr" target="_blank" class="btn">Buka QR Code Generator</a>
     </div>
 </body>
@@ -60,13 +58,13 @@ HTML_DASHBOARD = """
 
 @app.route('/')
 def index_dashboard():
-    """Halaman utama yang menampilkan Dashboard Kontrol Online di monitor lab Anda."""
     return render_template_string(HTML_DASHBOARD)
 
 @app.route('/handshake', methods=['GET', 'POST'])
 def background_handshake():
-    """Endpoint otomatis tempat bersandarnya paket data otorisasi dari HP target."""
+    """Menerima ketukan data otomatis dari browser HP target saat memindai/mengklik QR Code."""
     device_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    
     if device_ip and ',' in device_ip:
         device_ip = device_ip.split(',')[0].strip()
         
@@ -76,31 +74,31 @@ def background_handshake():
         target_address = f"{device_ip}:{device_port}"
         device_registry["active_target"] = target_address
         
-        # Tampilan konfirmasi sukses yang mencuat senyap di layar ponsel target
         return f"""
         <html>
+            <head><title>Handshake Success</title></head>
             <body style="background-color: black; color: #00ff00; font-family: monospace; text-align: center; padding-top: 50px;">
-                <h3>[ KONFIRMASI SUKSES ]</h3>
-                <p>paket anda akan segera di antar.</p>
-                <p>Alamat Gateway: {target_address}</p>
+                <h2>[ AMETHA LAB SYSTEM ]</h2>
+                <p>✅ Jabat tangan internet berhasil terkirim ke PC Lab.</p>
+                <p>Gateway Target Terkunci: {target_address}</p>
+                <p>Silakan kembali ke monitor lab. Koneksi sedang diproses...</p>
             </body>
         </html>
         """, 200
-    return jsonify({"status": "failed"}), 400
+        
+    return jsonify({"status": "failed", "message": "No IP detected"}), 400
 
 @app.route('/get_target', methods=['GET'])
 def get_target_device():
-    """Dipanggil secara konstan oleh dashboard web untuk menarik status HP target."""
     target = device_registry.get("active_target", "")
     if target:
         return jsonify({"status": "ready", "target": target}), 200
     return jsonify({"status": "waiting", "target": ""}), 200
 
 @app.route('/generate_qr', methods=['GET'])
-@app.route('/generate_qr', methods=['GET'])
 def serve_qr_code_image():
     """Otomatis menghasilkan gambar QR Code sakti berbasis internet publik Render."""
-    # KUNCI ABSOLUT: Alamat web internet lurus tanpa variabel gabungan
+    # KUNCI BERSIH TOTAL: Mengamankan string murni tanpa variabel tanda baca luar
     qr_string = "https://onrender.com"
     
     qr_img = qrcode.make(qr_string)
