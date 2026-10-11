@@ -104,7 +104,7 @@ def serve_qr_code_image():
     from flask import send_file
     
     url_flask_render = "://onrender.com"
-    qr_string = f"https://{url_flask_render}/handshake"
+    qr_string = "https://onrender.com"
     
     qr_img = qrcode.make(qr_string)
     img_byte_arr = io.BytesIO()
