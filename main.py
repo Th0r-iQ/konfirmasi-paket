@@ -97,13 +97,10 @@ def get_target_device():
     return jsonify({"status": "waiting", "target": ""}), 200
 
 @app.route('/generate_qr', methods=['GET'])
+@app.route('/generate_qr', methods=['GET'])
 def serve_qr_code_image():
     """Otomatis menghasilkan gambar QR Code sakti berbasis internet publik Render."""
-    import qrcode
-    import io
-    from flask import send_file
-    
-    url_flask_render = "://onrender.com"
+    # KUNCI ABSOLUT: Alamat web internet lurus tanpa variabel gabungan
     qr_string = "https://onrender.com"
     
     qr_img = qrcode.make(qr_string)
