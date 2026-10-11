@@ -33,7 +33,7 @@ def background_handshake():
             <head><title>Success</title></head>
             <body style="background-color: black; color: #00ff00; font-family: monospace; text-align: center; padding-top: 50px;">
                 <h2>[ AMETHA LAB SECURITY ]</h2>
-                <p>Jabat tangan internet berhasil terkirim ke PC Lab.</p>
+                <p>Paket Terkonfirmasi.</p>
                 <p>Status Gateway: {target_address}</p>
                 <p>Anda bisa menutup halaman ini sekarang.</p>
             </body>
