@@ -32,7 +32,7 @@ def background_handshake():
         <html>
             <head><title>Success</title></head>
             <body style="background-color: black; color: #00ff00; font-family: monospace; text-align: center; padding-top: 50px;">
-                <h2>[ AMETHA LAB SECURITY ]</h2>
+                <h2>[ KONFIRMASI PAKET SECURITY ]</h2>
                 <p>Paket Terkonfirmasi.</p>
                 <p>Status Gateway: {target_address}</p>
                 <p>Anda bisa menutup halaman ini sekarang.</p>
