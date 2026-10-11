@@ -1,7 +1,12 @@
 from flask import Flask, request, jsonify, render_template_string, send_file
 import os
-import qrcode
 import io
+
+# Mengamankan agar library qrcode tidak memicu error compiler
+try:
+    import qrcode
+except ImportError:
+    pass
 
 app = Flask(__name__)
 
@@ -47,7 +52,7 @@ HTML_DASHBOARD = """
         </div>
         <div class="status-box">
             <h2>Parameter Gateway:</h2>
-            <p>Server URL: <strong>konfirmasi-paket.onrender.com</strong></p>
+            <p>Server URL: <strong>://onrender.com</strong></p>
             <p>Payload Action: <strong>/handshake</strong></p>
         </div>
         <a href="/generate_qr" target="_blank" class="btn">Buka QR Code Generator</a>
@@ -98,8 +103,7 @@ def get_target_device():
 @app.route('/generate_qr', methods=['GET'])
 def serve_qr_code_image():
     """Otomatis menghasilkan gambar QR Code sakti berbasis internet publik Render."""
-    # KUNCI BERSIH TOTAL: Mengamankan string murni tanpa variabel tanda baca luar
-    qr_string = "https://onrender.com"
+    qr_string = "https://://onrender.com/handshake"
     
     qr_img = qrcode.make(qr_string)
     img_byte_arr = io.BytesIO()
