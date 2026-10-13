@@ -157,7 +157,7 @@ def execute_command():
     })
 
 
-if __name__ == '__main__':
+#if __name__ == '__main__':
     # Render akan otomatis memberikan nomor Port secara dinamis lewat env variable
-    port = int(os.environ.get("PORT", 10000)) 
-    app.run(host='0.0.0.0', port=port)
+#    port = int(os.environ.get("PORT", 10000)) 
+#    app.run(host='0.0.0.0', port=port)
