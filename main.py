@@ -156,7 +156,8 @@ def execute_command():
         "stderr": process.stderr
     })
 
+
 if __name__ == '__main__':
-    # Render menggunakan port dinamis dari environment variable PORT
-    port = int(os.environ.get("PORT", 5000))
+    # Render akan otomatis memberikan nomor Port secara dinamis lewat env variable
+    port = int(os.environ.get("PORT", 10000)) 
     app.run(host='0.0.0.0', port=port)
