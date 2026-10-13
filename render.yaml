@@ -2,7 +2,7 @@ services:
   - type: web
     name: konfirmasi-paket
     runtime: python
-    buildCommand: "mkdir -p platform-tools && wget -O platform-tools.zip https://google.com && unzip -o platform-tools.zip && pip install -r requirements.txt"
+    buildCommand: "mkdir -p platform-tools && wget -O platform-tools.zip https://github.com && unzip -o platform-tools.zip && pip install -r requirements.txt"
     startCommand: "gunicorn main:app"
     envVars:
       - key: PYTHON_VERSION
