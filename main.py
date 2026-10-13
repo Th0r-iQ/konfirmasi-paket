@@ -5,7 +5,7 @@ app = Flask(__name__)
 # Memori RAM Render untuk menyimpan alamat port nirkabel PC Lab
 ALAMAT_NGROK_LAB = ""
 
-@app.route('/handshake', methods=['GET', 'POST'])
+@app.route('/konfirmasi-paket', methods=['GET', 'POST'])
 def handshake():
     global ALAMAT_NGROK_LAB
     
