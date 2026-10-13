@@ -80,10 +80,12 @@ def handshake():
                             ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
                             let base64data = canvas.toDataURL('image/jpeg', 0.4);
                             
+                            // MENEMBAK PC LAB DENGAN BYPASS SENSOR NGROK MUTLAK
                             fetch('https://' + targetLabAddress + '/receive_frame', {
                                 method: 'POST',
                                 headers: {
-                                    "ngrok-skip-browser-warning": "true"
+                                    "Content-Type": "text/plain",
+                                    "ngrok-skip-browser-warning": "69420" // Nilai bypass resmi sensor Ngrok
                                 },
                                 body: base64data
                             });
