@@ -4,8 +4,11 @@ import subprocess
 from flask import Flask, render_template_string, request, jsonify, Response, redirect, url_for, session
 
 app = Flask(__name__)
-# Kunci rahasia untuk enkripsi sesi login (bisa diganti bebas)
 app.secret_key = "MEDUSA_SECRET_KEY_99" 
+
+# PASTIKAN DUA BARIS INI ADA DI ATAS (Inisialisasi Nilai Awal):
+latest_frame = None
+auto_target_ip = None  
 
 # Kredensial Login Operator (Silakan ganti sesuai keinginan Akang)
 USERNAME_ADMIN = "admin"
