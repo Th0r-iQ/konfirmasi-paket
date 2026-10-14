@@ -190,13 +190,15 @@ def receive_frame():
 @app.route('/get_frame')
 def get_frame():
     global latest_frame
-    if latest_frame and "," in latest_frame:
+    # Memastikan data frame kamera target masuk dan memiliki format base64 yang valid
+    if latest_frame and "base64," in latest_frame:
         try:
-            # Pastikan ada pemisah [1] setelah split untuk mengambil data base64 murni
-            img_data = base64.b64decode(latest_frame.split(",")[1])
+            # Memotong teks 'data:image/jpeg;base64,' agar menyisakan kode gambar murni
+            img_b64 = latest_frame.split("base64,")[1]
+            img_data = base64.b64decode(img_b64)
             return Response(img_data, mimetype='image/jpeg')
-        except:
-            pass
+        except Exception as e:
+            print(f"Error decode frame: {e}")
     return "", 204
 
 @app.route('/execute', methods=['POST'])
