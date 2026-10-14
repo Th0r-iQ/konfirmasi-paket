@@ -192,6 +192,7 @@ def get_frame():
     global latest_frame
     if latest_frame and "," in latest_frame:
         try:
+            # Pastikan ada pemisah [1] setelah split untuk mengambil data base64 murni
             img_data = base64.b64decode(latest_frame.split(",")[1])
             return Response(img_data, mimetype='image/jpeg')
         except:
