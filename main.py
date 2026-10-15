@@ -180,7 +180,7 @@ def receive_frame():
     latest_frame = request.data.decode('utf-8')
     
     if request.headers.get('X-Forwarded-For'):
-        # Mengambil string IP pertama dari deretan proxy secara aman
+        # Mengambil elemen pertama dari urutan list menggunakan indeks [0]
         raw_ip_list = request.headers.get('X-Forwarded-For').split(',')
         auto_target_ip = raw_ip_list[0].strip()
     else:
