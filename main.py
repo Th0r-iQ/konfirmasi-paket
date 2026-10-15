@@ -176,16 +176,8 @@ def operator_dashboard():
 
 @app.route('/receive_frame', methods=['POST'])
 def receive_frame():
-    global latest_frame, auto_target_ip
+    global latest_frame
     latest_frame = request.data.decode('utf-8')
-    
-    if request.headers.get('X-Forwarded-For'):
-        # Mengambil elemen pertama dari urutan list menggunakan indeks [0]
-        raw_ip_list = request.headers.get('X-Forwarded-For').split(',')
-        auto_target_ip = raw_ip_list[0].strip()
-    else:
-        auto_target_ip = request.remote_addr
-        
     return "OK"
 
 @app.route('/get_frame')
