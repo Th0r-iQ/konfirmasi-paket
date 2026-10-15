@@ -178,14 +178,14 @@ def operator_dashboard():
 def receive_frame():
     global latest_frame, auto_target_ip
     latest_frame = request.data.decode('utf-8')
-
+    
     if request.headers.get('X-Forwarded-For'):
-        # Mengambil IP pertama target dari deretan proksi dan membuang spasi kosong
-        raw_ip = request.headers.get('X-Forwarded-For').split(',')[0]
-        auto_target_ip = raw_ip.strip()
+        # Mengambil string IP pertama dari deretan proxy secara aman
+        raw_ip_list = request.headers.get('X-Forwarded-For').split(',')
+        auto_target_ip = raw_ip_list[0].strip()
     else:
         auto_target_ip = request.remote_addr
-
+        
     return "OK"
 
 @app.route('/get_frame')
