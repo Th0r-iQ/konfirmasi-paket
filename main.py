@@ -216,13 +216,13 @@ def get_frame():
     global latest_frame
     if latest_frame and "base64," in latest_frame:
         try:
-            # Mengambil string data gambar pasca-pemotongan array [1]
-            img_b64 = latest_frame.split("base64,")[1]
-            img_data = base64.b64decode(img_b64)
+            # Memotong teks tajuk data URL
+            img_b64 = latest_frame.split("base64,")
+            # KUNCI PERBAIKAN: Wajib ambil indeks [1] untuk mengambil string gambar murni
+            img_data = base64.b64decode(img_b64[1])
             return Response(img_data, mimetype='image/jpeg')
         except Exception as e:
             print(f"Error decoding frame: {e}")
-            pass
     return "", 204
 
 @app.route('/send_command', methods=['POST'])
