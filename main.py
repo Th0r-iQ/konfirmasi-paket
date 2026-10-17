@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, jsonify, render_template_string
-import requests
 import time
 
 app = Flask(__name__)
@@ -34,7 +33,7 @@ def send_command():
     global current_command
     data = request.json
     current_command = data.get('command')
-    add_log(f"Mengirim perintah ke sistem clone: [{current_command.upper()}]")
+    add_log(f"Mengirim perintah ke sistem: [{current_command.upper()}]")
     return jsonify({"status": "queued"})
 
 @app.route('/poll_command', methods=['GET'])
@@ -57,23 +56,26 @@ def report_output():
 def get_logs():
     return jsonify({"logs": latest_logs})
 
-# PROXY UTAMA BYPASS PROTEKSI CLOUDFLARE
+# 💡 JALUR KHUSUS AMAN: Mengembalikan struktur halaman statis murni untuk bingkai simulator
 @app.route('/vnc_mirror')
 def vnc_mirror():
-    # Server VPS menembak port internal Docker secara lokal
-    target_url = "http://127.0.0"
-    try:
-        # Mengambil data halaman utuh dari Docker internal
-        response = requests.get(target_url, timeout=10)
-        
-        # Mengirimkan kembali jawaban sebagai HTML resmi dari server domain Akang
-        return response.text, response.status_code, {
-            'Content-Type': 'text/html',
-            'Cache-Control': 'no-cache, no-store, must-revalidate'
-        }
-    except Exception as e:
-        return f"<pre style='color:#ff4a4a; background:#000; padding:20px;'>Gagal menyambungkan ke simulator internal VPS: {str(e)}</pre>", 502
-        def add_log(message):
+    return render_template_string('''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <style>body,html,iframe { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#000; border:none; }</style>
+        </head>
+        <body>
+            <script>
+                // Mengarahkan secara dinamis ke IP publik server tanpa merusak enkripsi SSL dasbor utama
+                document.write('<iframe src="http://' + window.location.hostname + ':6080/vnc.html?autoconnect=true&resize=scale"></iframe>');
+            </script>
+        </body>
+        </html>
+    ''')
+
+def add_log(message):
     timestamp = time.strftime('%H:%M:%S')
     latest_logs.append(f"[{timestamp}] {message}")
     if len(latest_logs) > 50:
