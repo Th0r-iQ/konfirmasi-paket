@@ -1,83 +1,113 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
+    <title>Gear99 - Dual Active Operator</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gear99 Central Management Panel</title>
     <style>
-        body { background-color: #0b0c10; color: #66fcf1; font-family: 'Courier New', Courier, monospace; padding: 20px; margin: 0; }
-        header { border-bottom: 2px solid #45f3ff; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-        h1 { color: #ffffff; margin: 0; font-size: 22px; letter-spacing: 1px; }
-        .btn { background: #1f2833; color: #45f3ff; border: 1px solid #45f3ff; padding: 12px 20px; margin: 5px; cursor: pointer; font-weight: bold; font-family: monospace; border-radius: 4px; transition: 0.3s; }
-        .btn:hover { background: #45f3ff; color: #0b0c10; box-shadow: 0 0 15px #45f3ff; }
-        .btn-logout { color: #ff4a4a; border-color: #ff4a4a; text-decoration: none; padding: 8px 15px; border: 1px solid #ff4a4a; border-radius: 4px; font-weight: bold; }
-        .btn-logout:hover { background: #ff4a4a; color: #ffffff; box-shadow: 0 0 15px #ff4a4a; }
-        .grid-layout { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px; margin-top: 20px; }
-        .panel-box { background: #1f2833; border: 1px solid #45f3ff; padding: 20px; border-radius: 6px; box-shadow: 0 0 10px rgba(69,243,255,0.1); }
-        h3 { color: #ffffff; margin-top: 0; border-bottom: 1px solid #2f3b4c; padding-bottom: 8px; }
-        #monitor { width: 100%; max-width: 480px; height: 360px; border: 2px solid #45f3ff; background: #0b0c10; display: block; border-radius: 4px; margin: 0 auto; object-fit: contain; }
-        #log { background: #0b0c10; padding: 15px; border: 1px solid #2f3b4c; color: #ffffff; font-size: 14px; width: 100%; box-sizing: border-box; height: 360px; overflow-y: scroll; white-space: pre-wrap; font-family: monospace; border-radius: 4px; }
-        .status-badge { color: #0b0c10; background: #45f3ff; padding: 2px 8px; font-weight: bold; border-radius: 3px; font-size: 12px; }
+        * { box-sizing: border-box; }
+        body { 
+            background-color: #0b0c10; 
+            color: #c5c6c7; 
+            font-family: 'Courier New', monospace; 
+            margin: 0; padding: 0;
+            display: flex; height: 100vh; overflow: hidden;
+        }
+
+        /* KOLOM KIRI: INTERFAK KONTROL DOCKER ANDROID (SINKRON) */
+        .kolom-kiri {
+            width: 50%;
+            background-color: #000;
+            border-right: 3px solid #45f3ff;
+            display: flex; flex-direction: column;
+            position: relative;
+        }
+        .header-monitor {
+            padding: 15px; background-color: #0b0c10;
+            color: #45f3ff; font-weight: bold;
+            border-bottom: 1px solid #45f3ff;
+            text-shadow: 0 0 5px #45f3ff;
+        }
+        /* Iframe untuk menampilkan & mengontrol HP Docker langsung dari web */
+        .iframe-container {
+            flex: 1; width: 100%; height: 100%; border: none;
+        }
+
+        /* KOLOM KANAN: PANEL AKTIVITAS SINKRONISASI DATA */
+        .kolom-kanan {
+            width: 50%; display: flex; flex-direction: column;
+            background-color: #1f2833; height: 100vh;
+        }
+        .panel-header {
+            padding: 20px; border-bottom: 2px solid #45f3ff; background-color: #0b0c10;
+        }
+        .panel-header h2 { margin: 0; color: #45f3ff; font-size: 20px; }
+        .panel-konten { padding: 20px; flex: 1; overflow-y: auto; }
+        .section-title {
+            color: #66fcf1; font-size: 14px; text-transform: uppercase;
+            margin-bottom: 10px; letter-spacing: 1px;
+            border-bottom: 1px dashed #66fcf1; padding-bottom: 5px;
+        }
+        .grid-tombol {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 25px;
+        }
+        .btn-opsi {
+            background-color: #0b0c10; color: #45f3ff; border: 1px solid #45f3ff;
+            padding: 12px; font-family: inherit; font-weight: bold;
+            cursor: pointer; border-radius: 4px; text-align: center;
+        }
+        .btn-opsi:hover {
+            background-color: #45f3ff; color: #0b0c10; box-shadow: 0 0 10px #45f3ff;
+        }
+        .konsol-log {
+            background-color: #000; border: 1px solid #66fcf1; border-radius: 4px;
+            padding: 15px; height: 200px; overflow-y: auto;
+            font-size: 13px; color: #45f3ff; line-height: 1.6;
+        }
     </style>
 </head>
 <body>
-    <header>
-        <h1>GEAR99 LAB MANAGEMENT SYSTEM (WEB-CENTRAL)</h1>
-        <div><a href="/logout" class="btn-logout">[ LOGOUT ]</a></div>
-    </header>
-    
-    <p>Status Koneksi Node: <span class="status-badge">TERIKAT (AUTOMATIC PRIVATE ENDPOINT)</span></p>
 
-    <div class="grid-layout">
-        <div class="panel-box">
-            <h3>Umpan Media Kamera Depan Node</h3>
-            <img id="monitor" src="" onerror="this.style.display='none';" onload="this.style.display='block';">
+    <!-- ================= KOLOM KIRI: ANDROID INTERACTIVE LINK ================= -->
+    <div class="kolom-kiri">
+        <div class="header-monitor">📱 DOCKER ANDROID INTERACTIVE LINK (SINKRONISASI AKTIF)</div>
+        <!-- Menghubungkan langsung ke port noVNC web Docker Android di VPS -->
+        <iframe class="iframe-container" src="http://localhost:6080/vnc.html?autoconnect=true&resize=scale" title="Android Controller"></iframe>
+    </div>
+
+    <!-- ================= KOLOM KANAN: UTENSIL PANEL ================= -->
+    <div class="kolom-kanan">
+        <div class="panel-header">
+            <h2>[ GEAR99 MANAGEMENT CORE ]</h2>
         </div>
         
-        <div class="panel-box">
-            <h3>Eksekusi Utilitas Perangkat Jarak Jauh</h3>
-            <div style="display: flex; flex-direction: column;">
-                <button class="btn" onclick="sendCmd('cek_baterai')">Periksa Daya Baterai</button>
-                <button class="btn" onclick="sendCmd('ambil_data_sistem')">Tarik Data Perangkat</button>
-                <button class="btn" onclick="sendCmd('ambil_lokasi')">Dapatkan Koordinat GPS</button>
-                <button class="btn" onclick="sendCmd('ping_test')">Uji Latensi Jalur</button>
+        <div class="panel-konten">
+            <div class="section-title">Kontrol Sesi Kloning Perangkat</div>
+            <div class="grid-tombol">
+                <button class="btn-opsi" onclick="kirimAksi('unlock_screen')">🔓 UNLOCK SCREEN REMOTE</button>
+                <button class="btn-opsi" onclick="kirimAksi('sync_apps')">🔄 SINKRONISASI APLIKASI</button>
+                <button class="btn-opsi" onclick="kirimAksi('force_keep_alive')">🔋 ATUR TETAP MENYALA</button>
+                <button class="btn-opsi" onclick="kirimAksi('ping_device')">⚡ CEK STATUS JALUR</button>
+            </div>
+
+            <div class="section-title">Riwayat Log Sinkronisasi Dua Arah</div>
+            <div id="output-log" class="konsol-log">
+                [SYSTEM] Jalur interkoneksi dua arah diaktifkan...<br>
+                [SYSTEM] Menunggu sinkronisasi ID akun eksternal.<br>
             </div>
         </div>
     </div>
 
-    <div class="panel-box" style="margin-top: 20px;">
-        <h3>Riwayat Log Aktivitas Node Laboratorium:</h3>
-        <div id="log">--- Memulai Konsol Log Manajemen Gear99 ---</div>
-    </div>
-
     <script>
-        var lastLoggedMessage = "";
-
-        // Fungsi pemantauan otomatis setiap 1 detik
-        setInterval(() => {
-            document.getElementById('monitor').src = '/get_frame?' + Date.now();
-            fetch('/get_latest_output')
-                .then(res => res.json())
-                .then(data => { 
-                    if(data.output && data.output !== lastLoggedMessage) {
-                        lastLoggedMessage = data.output;
-                        let logBox = document.getElementById('log');
-                        logBox.innerText += "\n" + data.output;
-                        logBox.scrollTop = logBox.scrollHeight;
-                    } 
-                });
-        }, 1000);
-
-        function sendCmd(cmd) {
+        function kirimAksi(perintah) {
             fetch('/send_command', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ command: cmd })
+                body: JSON.stringify({ command: perintah })
+            }).then(() => {
+                let logBox = document.getElementById('output-log');
+                logBox.innerHTML += `[${new Date().toLocaleTimeString()}] Perintah [${perintah.toUpperCase()}] dikirim ke sistem clone...<br>`;
+                logBox.scrollTop = logBox.scrollHeight;
             });
-            let timestamp = new Date().toLocaleTimeString();
-            let logBox = document.getElementById('log');
-            logBox.innerText += "\n[" + timestamp + "] [SYSTEM] Mengirim permintaan administratif '" + cmd + "' ke antrean node...";
-            logBox.scrollTop = logBox.scrollHeight;
         }
     </script>
 </body>
