@@ -72,6 +72,13 @@ def add_log(message):
     # Batasi kapasitas log di memori agar VPS tidak crash
     if len(latest_logs) > 50:
         latest_logs.pop(0)
-
+@app.route('/vnc_mirror')
+def vnc_mirror():
+    # Mengarahkan browser internal secara otomatis ke port VNC Docker lokal server
+    return render_template_string('''
+        <script>
+            window.location.href = "http://" + window.location.hostname + ":6080/vnc.html?autoconnect=true&resize=scale";
+        </script>
+    ''')
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)
