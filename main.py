@@ -93,5 +93,23 @@ def serve_sw():
     # Mengirimkan file Service Worker dengan header mime-type JavaScript yang sah
     return app.send_static_file('sw.js'), 200, {'Content-Type': 'application/javascript'}
 
+@app.route('/operator', methods=['GET', 'POST'])
+def operator_panel():
+    # Menampilkan halaman login sederhana untuk operator
+    # Akang bisa menghubungkannya dengan file templates/operator.html nanti
+    return '''
+    <html>
+        <head><title>Gear99 - Dual Active Operator</title></head>
+        <body style="background-color: #0b0c10; color: white; font-family: sans-serif; padding: 50px;">
+            <h2>[ GEAR99 LAB AUTH ]</h2>
+            <form method="POST" action="/operator">
+                <p>Username: <input type="text" name="username" style="background: #1f2833; color: white; border: 1px solid #45f3ff;"></p>
+                <p>Password: <input type="password" name="password" style="background: #1f2833; color: white; border: 1px solid #45f3ff;"></p>
+                <input type="submit" value="Masuk Panel" style="background: #45f3ff; color: black; border: none; padding: 5px 15px; cursor: pointer;">
+            </form>
+        </body>
+    </html>
+    '''
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)
