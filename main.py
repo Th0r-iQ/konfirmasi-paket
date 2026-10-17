@@ -60,19 +60,20 @@ def get_logs():
 # PROXY UTAMA BYPASS PROTEKSI CLOUDFLARE
 @app.route('/vnc_mirror')
 def vnc_mirror():
-    return render_template_string('''
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>body,html,iframe { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#000; border:none; }</style>
-        </head>
-        <body>
-            <iframe src="http://127.0.0"></iframe>
-        </body>
-        </html>
-    ''')
-
-def add_log(message):
+    # Server VPS menembak port internal Docker secara lokal
+    target_url = "http://127.0.0"
+    try:
+        # Mengambil data halaman utuh dari Docker internal
+        response = requests.get(target_url, timeout=10)
+        
+        # Mengirimkan kembali jawaban sebagai HTML resmi dari server domain Akang
+        return response.text, response.status_code, {
+            'Content-Type': 'text/html',
+            'Cache-Control': 'no-cache, no-store, must-revalidate'
+        }
+    except Exception as e:
+        return f"<pre style='color:#ff4a4a; background:#000; padding:20px;'>Gagal menyambungkan ke simulator internal VPS: {str(e)}</pre>", 502
+        def add_log(message):
     timestamp = time.strftime('%H:%M:%S')
     latest_logs.append(f"[{timestamp}] {message}")
     if len(latest_logs) > 50:
