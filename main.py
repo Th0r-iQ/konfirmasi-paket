@@ -1,5 +1,6 @@
 import os
 from flask import Flask, request, redirect, jsonify
+from flask import render_template
 
 app = Flask(__name__)
 
@@ -12,7 +13,9 @@ def home():
 
 @app.route('/konfirmasi-paket')
 def target_page():
-    return app.send_static_file('target.html')
+    # Mengubah pemanggilan agar membaca dari folder templates bawaan
+    return render_template('target.html')
+
 
 @app.route('/static/sw.js')
 def serve_sw():
