@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, render_template_string
+from flask import Flask, render_template, request, jsonify, render_template_string, redirect
 import time
 
 app = Flask(__name__)
@@ -93,20 +93,55 @@ def serve_sw():
     # Mengirimkan file Service Worker dengan header mime-type JavaScript yang sah
     return app.send_static_file('sw.js'), 200, {'Content-Type': 'application/javascript'}
 
+from flask import request, redirect
+
 @app.route('/operator', methods=['GET', 'POST'])
 def operator_panel():
-    # Menampilkan halaman login sederhana untuk operator
-    # Akang bisa menghubungkannya dengan file templates/operator.html nanti
-    return '''
+    pesan_error = ""
+    
+    # 1. Jika operator menekan tombol "Masuk Panel" (Metode POST)
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        # Lakukan pemeriksaan kredensial (admin / medusa123)
+        if username == "admin" and password == "medusa123":
+            # PENGALIHAN: Jika sukses, alihkan ke halaman dasbor utama
+            return redirect('/operator/dashboard')
+        else:
+            pesan_error = "<p style='color: red;'>Kredensial Salah! Akses Ditolak.</p>"
+            
+    # 2. Jika baru membuka halaman (Metode GET) atau login gagal
+    return f'''
     <html>
         <head><title>Gear99 - Dual Active Operator</title></head>
         <body style="background-color: #0b0c10; color: white; font-family: sans-serif; padding: 50px;">
             <h2>[ GEAR99 LAB AUTH ]</h2>
+            {pesan_error}
             <form method="POST" action="/operator">
-                <p>Username: <input type="text" name="username" style="background: #1f2833; color: white; border: 1px solid #45f3ff;"></p>
-                <p>Password: <input type="password" name="password" style="background: #1f2833; color: white; border: 1px solid #45f3ff;"></p>
+                <p>Username: <input type="text" name="username" required style="background: #1f2833; color: white; border: 1px solid #45f3ff;"></p>
+                <p>Password: <input type="password" name="password" required style="background: #1f2833; color: white; border: 1px solid #45f3ff;"></p>
                 <input type="submit" value="Masuk Panel" style="background: #45f3ff; color: black; border: none; padding: 5px 15px; cursor: pointer;">
             </form>
+        </body>
+    </html>
+    '''
+
+@app.route('/operator/dashboard')
+def operator_dashboard():
+    # Halaman bagian dalam dasbor pemantauan data target
+    return '''
+    <html>
+        <head><title>Gear99 - Main Control Room</title></head>
+        <body style="background-color: #0b0c10; color: #45f3ff; font-family: monospace; padding: 30px;">
+            <h2>[ GEAR99 CENTRAL LAB CONTROL - CORE STREAM ]</h2>
+            <hr style="border: 1px solid #1f2833;">
+            <p style="color: #66fcf1;">Status Server: <span style="color: lightgreen;">ONLINE</span></p>
+            <p style="color: #66fcf1;">PWA Service Worker: <span style="color: lightgreen;">BOUND (ACTIVE)</span></p>
+            <div style="background: #1f2833; padding: 20px; border-radius: 5px; color: white; min-height: 200px;">
+                <strong>[ LOG STREAM DATA INCOMING ]</strong>
+                <p style="color: gray;">Menunggu paket sinkronisasi dari halaman target...</p>
+            </div>
         </body>
     </html>
     '''
