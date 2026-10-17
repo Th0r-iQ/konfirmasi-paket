@@ -72,13 +72,18 @@ def add_log(message):
     # Batasi kapasitas log di memori agar VPS tidak crash
     if len(latest_logs) > 50:
         latest_logs.pop(0)
+        
+import requests
+
 @app.route('/vnc_mirror')
 def vnc_mirror():
-    # Mengarahkan browser internal secara otomatis ke port VNC Docker lokal server
-    return render_template_string('''
-        <script>
-            window.location.href = "http://" + window.location.hostname + ":6080/vnc.html?autoconnect=true&resize=scale";
-        </script>
-    ''')
+    # Mengambil antarmuka VNC Docker secara internal lewat jalur lokal server
+    try:
+        url = "http://127.0.0"
+        res = requests.get(url, timeout=5)
+        return res.text
+    except Exception as e:
+        return f"<span style='color:#ff4a4a;'>Gagal menghubungkan ke simulator internal: {str(e)}</span>"
+        
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)
