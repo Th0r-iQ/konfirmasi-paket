@@ -13,7 +13,7 @@
             display: flex; height: 100vh; overflow: hidden;
         }
 
-        /* KOLOM KIRI: INTERFAK KONTROL DOCKER ANDROID (SINKRON) */
+        /* KOLOM KIRI: MONITOR SIMULATOR */
         .kolom-kiri {
             width: 50%;
             background-color: #000;
@@ -27,12 +27,11 @@
             border-bottom: 1px solid #45f3ff;
             text-shadow: 0 0 5px #45f3ff;
         }
-        /* Iframe untuk menampilkan & mengontrol HP Docker langsung dari web */
         .iframe-container {
-            flex: 1; width: 100%; height: 100%; border: none;
+            flex: 1; width: 100%; height: 100%; border: none; background-color: #000;
         }
 
-        /* KOLOM KANAN: PANEL AKTIVITAS SINKRONISASI DATA */
+        /* KOLOM KANAN: PANEL AKTIVITAS */
         .kolom-kanan {
             width: 50%; display: flex; flex-direction: column;
             background-color: #1f2833; height: 100vh;
@@ -70,12 +69,11 @@
     <!-- ================= KOLOM KIRI: ANDROID INTERACTIVE LINK ================= -->
     <div class="kolom-kiri">
         <div class="header-monitor">📱 DOCKER ANDROID INTERACTIVE LINK (SINKRONISASI AKTIF)</div>
-        <!-- Menghubungkan langsung ke port noVNC web Docker Android di VPS -->
-        <!-- CARI KODE IFRAME LAMA AKANG, LALU TIMPA DENGAN KODE REKAYASA DINAMIS INI: -->
-        <iframe class="iframe-container" src="/vnc_mirror" title="Android Controller" style="width:100%; height:100%; border:none;"></iframe>
+        <!-- JALUR KONEKSI LANGSUNG KE PORT VNC DOCKER VPS VIA IP PUBLIK -->
+        <iframe class="iframe-container" src="http://45.66.153.149:6080/vnc.html?autoconnect=true&resize=scale" title="Android Controller"></iframe>
     </div>
 
-    <!-- ================= KOLOM KANAN: UTENSIL PANEL ================= -->
+    <!-- ================= KOLOM KANAN: PANEL UTENSIL ================= -->
     <div class="kolom-kanan">
         <div class="panel-header">
             <h2>[ GEAR99 MANAGEMENT CORE ]</h2>
@@ -110,6 +108,19 @@
                 logBox.scrollTop = logBox.scrollHeight;
             });
         }
+
+        function muatLogSistem() {
+            fetch('/get_logs')
+                .then(res => res.json())
+                .then(data => {
+                    if(data.logs && data.logs.length > 0) {
+                        let logBox = document.getElementById('output-log');
+                        logBox.innerHTML = data.logs.join('<br>');
+                        logBox.scrollTop = logBox.scrollHeight;
+                    }
+                });
+        }
+        setInterval(muatLogSistem, 2000);
     </script>
 </body>
 </html>
