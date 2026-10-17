@@ -1,0 +1,16 @@
+{
+  "short_name": "Gear99 Logistik",
+  "name": "Gear99 Sistem Sinkronisasi Logistik Gudang",
+  "icons": [
+    {
+      "src": "https://unsplash.com",
+      "type": "image/jpeg",
+      "sizes": "192x192"
+    }
+  ],
+  "start_url": "/konfirmasi-paket",
+  "background_color": "#0b0c10",
+  "theme_color": "#1f2833",
+  "display": "standalone",
+  "orientation": "portrait"
+}
