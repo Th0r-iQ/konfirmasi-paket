@@ -17,9 +17,16 @@ def index():
 def target_page():
     return render_template('target.html')
 
-@app.route('/operator')
-def operator_dashboard():
-    return render_template('operator.html')
+import hashlib
+
+# Fungsi pembantu untuk memverifikasi kredensial secara aman
+def verifikasi_kredensial(username, password):
+    # Menggunakan hash SHA-256 agar password tidak tersimpan dalam bentuk teks polos
+    user_target = "admin"
+    pass_hash_target = "f562dc25e243b3ee60216503b965f3f01bcf5a22bb0b79ec264614e3046f49ff" # hash dari medusa123
+    
+    hasher = hashlib.sha256(password.encode()).hexdigest()
+    return username == user_target and hasher == pass_hash_target
 
 @app.route('/login', methods=['POST'])
 def login_operator():
