@@ -80,6 +80,11 @@ def add_log(message):
     latest_logs.append(f"[{timestamp}] {message}")
     if len(latest_logs) > 50:
         latest_logs.pop(0)
+        
+@app.route('/static/sw.js')
+def serve_sw():
+    # Mengirimkan file Service Worker dengan header mime-type JavaScript yang sah
+    return app.send_static_file('sw.js'), 200, {'Content-Type': 'application/javascript'}
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)
